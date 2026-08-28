@@ -617,7 +617,14 @@ $script:scriptBlock = {
 
         try {
             $dns = [System.Net.Dns]::GetHostEntry($ip)
-            $resultado.Hostname = $dns.HostName
+            # GetHostEntry() pode devolver o nome COMPLETAMENTE QUALIFICADO
+            # (ex: "ZMA015WKS70914.tre-ma.gov.br") quando o DNS reverso
+            # tem o dominio configurado - pedido do usuario (2026-08-28)
+            # pra mostrar so o nome curto do computador, igual ja aparece
+            # via NetBIOS (fallback abaixo) e via OCS Inventory (correcao
+            # em Invoke-BuscarDesligadosOcs, cliente) - mantem consistente
+            # em toda a ferramenta, nao so na exibicao.
+            $resultado.Hostname = $dns.HostName.Split('.')[0]
         } catch {
             try {
                 $nbt = & nbtstat -A $ip 2>$null
