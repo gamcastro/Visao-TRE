@@ -820,17 +820,22 @@ function Test-ChamadaRemotaAssincronaConcluida {
     if ($rodando) {
         if ($EstadoAsync.Cronometro.Elapsed.TotalSeconds -ge $TimeoutSec) {
             $script:SessaoOcupada = $false
-            return [PSCustomObject]@{ Concluido = $true; Sucesso = $false }
+            return [PSCustomObject]@{ Concluido = $true; Sucesso = $false; Resultado = $null }
         }
-        return [PSCustomObject]@{ Concluido = $false; Sucesso = $false }
+        return [PSCustomObject]@{ Concluido = $false; Sucesso = $false; Resultado = $null }
     }
 
     $script:SessaoOcupada = $false
     try {
-        Receive-Job -Job $job -ErrorAction Stop | Out-Null
-        return [PSCustomObject]@{ Concluido = $true; Sucesso = $true }
+        # .Resultado devolve o que o ScriptBlock produziu (achado ao vivo
+        # 2026-09-08, Visao WPF: antes descartado com Out-Null - servia
+        # pro keepalive, que so quer saber Sucesso, mas qualquer outro
+        # consumidor generico de Start/Test-ChamadaRemotaAssincrona
+        # precisa do dado de volta, nao so da confirmacao).
+        $resultado = Receive-Job -Job $job -ErrorAction Stop
+        return [PSCustomObject]@{ Concluido = $true; Sucesso = $true; Resultado = $resultado }
     } catch {
-        return [PSCustomObject]@{ Concluido = $true; Sucesso = $false }
+        return [PSCustomObject]@{ Concluido = $true; Sucesso = $false; Resultado = $null }
     } finally {
         Remove-Job -Job $job -ErrorAction SilentlyContinue
     }
