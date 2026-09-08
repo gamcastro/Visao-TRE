@@ -1,17 +1,26 @@
 ﻿<#
     VisaoPlanilhas.psm1
 
-    Le direto do Google Sheets (CSV publicado, sem autenticacao) as 4
-    tabelas de LEITURA que ate 2026-08-24 passavam pelo POLICY-SERVER via
-    PowerShell Remoting: Zonas, Grupos de Sistemas Eleitorais,
-    Campanhas/requisitos, Resultados de Campanhas.
+    Le da planilha Google (Sheets API v4, autenticada via login Google
+    OAuth - VisaoGoogleAuth.psm1) as 4 tabelas de LEITURA: Zonas, Grupos
+    de Sistemas Eleitorais, Campanhas/requisitos, Resultados de
+    Campanhas.
 
-    Por que migrar pro cliente (decisao com o usuario, 2026-08-24):
-    - Sao chamadas HTTP simples e PUBLICAS - a mesma URL de exportacao
-      CSV que o POLICY-SERVER ja chamava (confirmado lendo
-      VisaoServidor.ps1: Invoke-WebRequest direto, sem token, sem Apps
-      Script Web App envolvido), so que agora chamada direto da estacao
-      do tecnico.
+    ACHADO AO VIVO (2026-09-08, corrigido nesta versao): ate aqui essas 4
+    leituras eram feitas via export CSV PUBLICO da planilha (sem
+    autenticacao nenhuma) - migracao original de 2026-08-24. O TRE-MA
+    bloqueou "Qualquer pessoa com o link" no Drive corporativo, e isso
+    passou a devolver "401 Nao Autorizado" em producao (confirmado ao
+    vivo, versao 2.0.56) - a ferramenta so continuava funcionando via
+    cache local cada vez mais desatualizado. Corrigido trocando pra
+    leitura autenticada via Sheets API (Get-ValoresPlanilhaGoogleApi,
+    VisaoGoogleAuth.psm1) - cada tecnico precisa logar com a PROPRIA
+    conta @tre-ma.jus.br (uma vez, refresh token fica em cache local) e
+    a planilha precisa estar compartilhada com o dominio (Leitor), nao
+    mais "qualquer pessoa com o link".
+
+    Por que continua rodando no cliente, nao no POLICY-SERVER (decisao
+    original com o usuario, 2026-08-24, ainda valida):
     - Nao e trafego de varredura (nao e broadcast, nao preocupa a
       Seguranca Cibernetica) - mesma logica ja usada pro AD, ver
       VisaoAD.psm1 (arquitetura "roda local, sem remoting" ja
@@ -63,10 +72,18 @@
     de ler um estado de servidor.
 #>
 
-$script:UrlPlanilhaZonasCSV = "https://docs.google.com/spreadsheets/d/1_2aZhFgplRqCdPVV_lq4XJT9wgqkfbZpEFZRu1Zu9_I/export?format=csv&gid=0"
-$script:UrlPlanilhaGruposSistemasCSV = "https://docs.google.com/spreadsheets/d/1_2aZhFgplRqCdPVV_lq4XJT9wgqkfbZpEFZRu1Zu9_I/export?format=csv&gid=634558318"
-$script:UrlPlanilhaCampanhasCSV = "https://docs.google.com/spreadsheets/d/1_2aZhFgplRqCdPVV_lq4XJT9wgqkfbZpEFZRu1Zu9_I/gviz/tq?tqx=out:csv&sheet=CAMPANHAS"
-$script:UrlPlanilhaResultadosCampanhasCSV = "https://docs.google.com/spreadsheets/d/1_2aZhFgplRqCdPVV_lq4XJT9wgqkfbZpEFZRu1Zu9_I/gviz/tq?tqx=out:csv&sheet=RESULTADOS-CAMPANHAS"
+Import-Module (Join-Path $PSScriptRoot "VisaoGoogleAuth.psm1") -Force
+
+# Mesma planilha de sempre - so trocou o MEIO de leitura (Sheets API
+# autenticada em vez de export CSV publico). Nomes de aba confirmados
+# ao vivo via metadados da propria Sheets API (GET .../spreadsheets/{id}),
+# ja que "Grupos de Sistemas" so era conhecida pelo gid (numero), nao
+# pelo nome - a API v4 trabalha por NOME de aba, nao por gid.
+$script:SpreadsheetIdVisao = "1_2aZhFgplRqCdPVV_lq4XJT9wgqkfbZpEFZRu1Zu9_I"
+$script:AbaZonas = "Zonas"
+$script:AbaGruposSistemas = "GRUPOS-SISTEMAS-ELEITORAIS"
+$script:AbaCampanhas = "CAMPANHAS"
+$script:AbaResultadosCampanhas = "RESULTADOS-CAMPANHAS"
 
 # Tokens do Apps Script (RESULTADOS-CAMPANHAS, envio de CVC ao Drive,
 # atualizacao de Zonas) distribuidos de proposito neste modulo - decisao
@@ -87,17 +104,20 @@ $script:ArquivoZonasCache = Join-Path $script:PastaCachePlanilhas 'zonas_cache.c
 $script:ArquivoGruposSistemasCache = Join-Path $script:PastaCachePlanilhas 'grupos_sistemas_cache.csv'
 $script:ArquivoCampanhasCache = Join-Path $script:PastaCachePlanilhas 'campanhas_cache.csv'
 
-function Get-CsvPlanilhaOuCache {
+function Get-PlanilhaGoogleApiOuCache {
     <#
-        Baixa um CSV publicado de uma planilha Google Sheets (sem
-        autenticacao) com fallback pro ultimo cache local baixado com
-        sucesso NESTA estacao, se a busca online falhar. Mesma logica
-        (timeout, decodificacao UTF-8 manual, fallback) que
-        VisaoServidor.ps1 ja usava - so o CAMINHO do cache mudou (local
-        por estacao em vez de compartilhado no servidor).
+        Le uma aba inteira da planilha via Sheets API autenticada
+        (Get-ValoresPlanilhaGoogleApi, VisaoGoogleAuth.psm1 - login
+        Google OAuth por tecnico), com fallback pro ultimo cache local
+        baixado com sucesso NESTA estacao se a busca online falhar (sem
+        login ainda feito, sem rede, planilha sem compartilhar com o
+        dominio ainda etc.). Substitui Get-CsvPlanilhaOuCache (export CSV
+        publico, quebrado desde que o TRE-MA bloqueou "Qualquer pessoa
+        com o link" - ver comentario no topo do arquivo) - mesmo
+        contrato de retorno, so a ORIGEM dos dados mudou.
     #>
     param(
-        [Parameter(Mandatory)][string]$Url,
+        [Parameter(Mandatory)][string]$NomeAba,
         [string]$CaminhoCache = $null,
         [switch]$ForcarCache
     )
@@ -107,13 +127,7 @@ function Get-CsvPlanilhaOuCache {
 
     if (-not $ForcarCache) {
         try {
-            $resp = Invoke-WebRequest -Uri $Url -TimeoutSec 8 -UseBasicParsing
-            # O PowerShell 5.1 pode decodificar a resposta com a codificacao
-            # errada quando o servidor nao informa o charset explicitamente -
-            # pega os bytes brutos e decodifica como UTF-8 na mao.
-            $bytesResposta = $resp.RawContentStream.ToArray()
-            $textoUtf8 = [System.Text.Encoding]::UTF8.GetString($bytesResposta)
-            $linhas = $textoUtf8 | ConvertFrom-Csv
+            $linhas = @(Get-ValoresPlanilhaGoogleApi -SpreadsheetId $script:SpreadsheetIdVisao -Range $NomeAba)
             if ($linhas -and $linhas.Count -gt 0) {
                 $origem = "online"
                 if ($CaminhoCache) {
@@ -124,7 +138,7 @@ function Get-CsvPlanilhaOuCache {
                 }
             }
         } catch {
-            $avisos.Add("Nao foi possivel buscar a planilha online: $($_.Exception.Message)")
+            $avisos.Add("Nao foi possivel buscar a planilha online (login com o Google/permissao na planilha): $($_.Exception.Message)")
             $linhas = $null
         }
     }
@@ -147,7 +161,7 @@ function Get-ZonasRemoto {
     #>
     param([switch]$ForcarCache)
 
-    $r = Get-CsvPlanilhaOuCache -Url $script:UrlPlanilhaZonasCSV -CaminhoCache $script:ArquivoZonasCache -ForcarCache:$ForcarCache.IsPresent
+    $r = Get-PlanilhaGoogleApiOuCache -NomeAba $script:AbaZonas -CaminhoCache $script:ArquivoZonasCache -ForcarCache:$ForcarCache.IsPresent
     if (-not $r.Linhas) {
         return [PSCustomObject]@{ Ok = $false; Origem = $r.Origem; Contagem = 0; Avisos = $r.Avisos; Erro = "Nenhuma tabela de zonas disponivel (nem online, nem cache local)."; Zonas = @() }
     }
@@ -188,7 +202,7 @@ function Get-GruposSistemasRemoto {
     #>
     param([switch]$ForcarCache)
 
-    $r = Get-CsvPlanilhaOuCache -Url $script:UrlPlanilhaGruposSistemasCSV -CaminhoCache $script:ArquivoGruposSistemasCache -ForcarCache:$ForcarCache.IsPresent
+    $r = Get-PlanilhaGoogleApiOuCache -NomeAba $script:AbaGruposSistemas -CaminhoCache $script:ArquivoGruposSistemasCache -ForcarCache:$ForcarCache.IsPresent
     if (-not $r.Linhas) {
         return [PSCustomObject]@{ Ok = $false; Origem = $r.Origem; Contagem = 0; Avisos = $r.Avisos; Erro = $null; GruposSistemas = [PSCustomObject]@{} }
     }
@@ -208,7 +222,7 @@ function Get-CampanhasRemoto {
     #>
     param([switch]$ForcarCache)
 
-    $r = Get-CsvPlanilhaOuCache -Url $script:UrlPlanilhaCampanhasCSV -CaminhoCache $script:ArquivoCampanhasCache -ForcarCache:$ForcarCache.IsPresent
+    $r = Get-PlanilhaGoogleApiOuCache -NomeAba $script:AbaCampanhas -CaminhoCache $script:ArquivoCampanhasCache -ForcarCache:$ForcarCache.IsPresent
     if (-not $r.Linhas) {
         return [PSCustomObject]@{ Ok = $false; Origem = $r.Origem; Contagem = 0; Avisos = $r.Avisos; Erro = $null; Campanhas = @() }
     }
@@ -247,11 +261,8 @@ function Get-ResultadosCampanhasRemoto {
     param([scriptblock]$AoAtualizarStatus = $null)
 
     try {
-        $resp = Invoke-WebRequest -Uri $script:UrlPlanilhaResultadosCampanhasCSV -TimeoutSec 10 -UseBasicParsing
-        $bytesResposta = $resp.RawContentStream.ToArray()
-        $textoUtf8 = [System.Text.Encoding]::UTF8.GetString($bytesResposta)
-        $linhas = $textoUtf8 | ConvertFrom-Csv
-        if (-not $linhas) { return [PSCustomObject]@{ Ok = $true; Contagem = 0; Dados = @(); Erro = $null } }
+        $linhas = @(Get-ValoresPlanilhaGoogleApi -SpreadsheetId $script:SpreadsheetIdVisao -Range $script:AbaResultadosCampanhas)
+        if (-not $linhas -or $linhas.Count -eq 0) { return [PSCustomObject]@{ Ok = $true; Contagem = 0; Dados = @(); Erro = $null } }
 
         $resultado = New-Object System.Collections.Generic.List[object]
         foreach ($l in $linhas) {
