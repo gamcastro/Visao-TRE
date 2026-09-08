@@ -72,7 +72,15 @@
     de ler um estado de servidor.
 #>
 
-Import-Module (Join-Path $PSScriptRoot "VisaoGoogleAuth.psm1") -Force
+# Depende de Get-ValoresPlanilhaGoogleApi (VisaoGoogleAuth.psm1) - achado
+# ao vivo (2026-09-08): NAO importar esse modulo aqui de dentro (nested
+# Import-Module, chamado de dentro de OUTRO .psm1) - isso recarrega o
+# modulo num escopo privado/aninhado, "escondendo" a versao GLOBAL que
+# quem consome este arquivo (VisaoWpfCliente.ps1 etc.) ja tinha
+# importado antes - reproduzido ao vivo: Connect-VisaoGoogle parava de
+# ser reconhecido fora deste modulo depois disso. Quem importa
+# VisaoPlanilhas.psm1 e responsavel por importar VisaoGoogleAuth.psm1
+# ANTES (mesma ordem ja usada em VisaoWpfCliente.ps1).
 
 # Mesma planilha de sempre - so trocou o MEIO de leitura (Sheets API
 # autenticada em vez de export CSV publico). Nomes de aba confirmados
