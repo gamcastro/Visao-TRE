@@ -31,6 +31,49 @@
 $ErrorActionPreference = 'Stop'
 
 # ============================================================
+# Achado ao vivo (2026-09-09): o cmdlet ConvertFrom-Json do Windows
+# PowerShell 5.1 pode colapsar um array JSON de varios objetos num
+# UNICO objeto "colunar" (cada propriedade vira um array com os
+# valores de TODOS os itens originais, em vez de devolver um array de
+# objetos) - reproduzido de forma NAO-DETERMINISTICA (o mesmo texto
+# JSON, byte a byte identico, parseado certo em alguns contextos e
+# errado em outros, sem nenhuma chamada remota envolvida - confirmado
+# isolando so o parsing). Sintoma real ja visto: schema de Sistemas
+# Eleitorais extra virando 1 "item" com Largura=[90,150,150,...] em vez
+# de 9 itens com Largura escalar - e essa MESMA corrupcao se propaga
+# pro enriquecimento OCS (NotePropertyName recebendo um array em vez de
+# string), ja que os dois usam o schema corrompido. O
+# JavaScriptSerializer usado por baixo do cmdlet, chamado DIRETO sem
+# passar por ele, nao tem esse problema - ConvertFrom-JsonSeguro abaixo
+# e um substituto direto (mesmo formato de saida, PSCustomObject/array),
+# usado em todo ConvertFrom-Json deste arquivo que possa receber um
+# array com mais de 1 item.
+# ============================================================
+function ConvertFrom-JsonSeguro {
+    param([Parameter(Mandatory)][string]$Json)
+    Add-Type -AssemblyName System.Web.Extensions -ErrorAction SilentlyContinue
+    $serializer = New-Object System.Web.Script.Serialization.JavaScriptSerializer
+    $serializer.RecursionLimit = 100
+    $serializer.MaxJsonLength = [int]::MaxValue
+    $bruto = $serializer.DeserializeObject($Json)
+    return (Convert-ObjetoJsonBrutoSeguro $bruto)
+}
+
+function Convert-ObjetoJsonBrutoSeguro {
+    param($Objeto)
+    if ($null -eq $Objeto) { return $null }
+    if ($Objeto -is [System.Collections.IDictionary]) {
+        $h = [ordered]@{}
+        foreach ($chave in $Objeto.Keys) { $h[$chave] = Convert-ObjetoJsonBrutoSeguro $Objeto[$chave] }
+        return [PSCustomObject]$h
+    }
+    if ($Objeto -is [System.Collections.IEnumerable] -and -not ($Objeto -is [string])) {
+        return @($Objeto | ForEach-Object { Convert-ObjetoJsonBrutoSeguro $_ })
+    }
+    return $Objeto
+}
+
+# ============================================================
 # Achado ao vivo (2026-09-08): Invoke-ComandoRemotoJob (VisaoRemoting.psm1,
 # reaproveitado sem alteracao) ainda usa
 # [System.Windows.Forms.Application]::DoEvents() no proprio loop de
@@ -405,7 +448,7 @@ $script:TimerInit.Add_Tick({
         if ($st.Concluido) {
             if ($st.Sucesso) {
                 try {
-                    $script:Estado.SistemasEleitoraisExtra = @($st.Resultado | ConvertFrom-Json)
+                    $script:Estado.SistemasEleitoraisExtra = @(ConvertFrom-JsonSeguro -Json $st.Resultado)
                     foreach ($sis in $script:Estado.SistemasEleitoraisExtra) {
                         if (-not $sis.NaGradePrincipal) { continue }
                         Add-ColunaGridWpf $sis.Coluna $sis.Titulo $sis.Largura
@@ -429,7 +472,7 @@ $script:TimerInit.Add_Tick({
         if ($st.Concluido) {
             if ($st.Sucesso) {
                 try {
-                    $v = $st.Resultado | ConvertFrom-Json
+                    $v = ConvertFrom-JsonSeguro -Json $st.Resultado
                     if ($v.Ok) {
                         $script:Estado.TabelaVersoes = ConvertTo-HashtableLocalWpf $v.TabelaVersoes
                         $script:Estado.VersaoAtualPorSistema = ConvertTo-HashtableLocalWpf $v.VersaoAtualPorSistema
