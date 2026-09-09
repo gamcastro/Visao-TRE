@@ -104,7 +104,16 @@ function Set-RefreshTokenCache {
     if (-not (Test-Path -LiteralPath $script:PastaCacheGoogleAuth)) {
         New-Item -Path $script:PastaCacheGoogleAuth -ItemType Directory -Force | Out-Null
     }
-    Protect-TextoLocal -Texto $RefreshToken | Set-Content -LiteralPath $script:ArquivoTokenGoogle -Force
+    # -NoNewline e OBRIGATORIO aqui - achado ao vivo (2026-09-08): sem
+    # isso, Set-Content grava um "\r\n" no final do arquivo, que quebra
+    # o ConvertTo-SecureString na proxima leitura ("input string was
+    # not in a correct format"). Unprotect-TextoLocal esconde esse erro
+    # (try/catch devolve $null pra QUALQUER falha, nao so "arquivo de
+    # outro usuario/maquina"), entao o sintoma era Get-RefreshTokenCache
+    # devolver $null com um token BOM salvo no disco - parecia "sem
+    # cache"/"token expirado", caindo pro login interativo toda vez que
+    # o processo reabria, quando na verdade o cache era valido.
+    Protect-TextoLocal -Texto $RefreshToken | Set-Content -LiteralPath $script:ArquivoTokenGoogle -Force -NoNewline
 }
 
 function Invoke-LoginGoogleInterativo {
