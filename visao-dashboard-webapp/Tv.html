@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<link rel="icon" type="image/png" href="https://raw.githubusercontent.com/gamcastro/Visao-Web/main/assets/marca/icones/visao-192.png">
+<style>
+  /*
+    Painel TV do Visao - nos moldes do Painel TV do DICON (mesma
+    estrutura visual: mapa grande + coluna de indicadores + ticker no
+    rodape, tema escuro pensado pra TV, unidades vw/vh pra escalar em
+    qualquer resolucao). Identidade em verde (nao azul) pra nao ficar
+    igual ao DICON, mesma decisao ja tomada no resto do Visao Web.
+
+    Diferenca deliberada em relacao ao DICON: NAO tem "em campo agora"
+    (pontos pulsando no mapa + lista de tecnicos online) - isso exige
+    um sinal de presenca em tempo real (checkin) que o Visao Desktop
+    ainda nao publica (so publica no FIM da varredura). Substituido por
+    "Atividade recente" (ultima varredura por Zona Eleitoral, que ja
+    existe) - honesto sobre o que da pra mostrar hoje.
+  */
+  :root{
+    --bg:#0A0E1A; --panel:#0F1B14; --panel2:#0C1610; --hair:#1E3A28;
+    --tinta:#EAEEF6; --tinta2:#8AA592; --verde:#2ECC71; --verdeforte:#1b5e20;
+    --laranja:#E8873E; --vermelho:#e53935;
+    --minibar:#0c1a12; --mapbg:#0d1a12; --labbg:rgba(12,22,16,.92);
+  }
+  :root[data-tema="claro"]{
+    --bg:#EEF1F6; --panel:#FFFFFF; --panel2:#F6F8FC; --hair:#D6DCEA;
+    --tinta:#141A24; --tinta2:#5C6678; --verde:#1B8f4c; --verdeforte:#0E5C2A;
+    --laranja:#C56A22; --vermelho:#C0392B;
+    --minibar:#E3E8F2; --mapbg:#e7edf6; --labbg:rgba(255,255,255,.95);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;height:100%;}
+  body{background:var(--bg);color:var(--tinta);overflow:hidden;
+       font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;}
+
+  #tv{display:flex;flex-direction:column;height:100vh;width:100vw;}
+  header{display:flex;align-items:center;gap:1.4vw;padding:1.1vh 1.6vw;border-bottom:1px solid var(--hair);
+         background:var(--panel2);flex:none;}
+  header .wm{font-weight:800;font-size:1.9vh;letter-spacing:.01em;}
+  header .badge{background:#f2b705;color:#3a2e00;font-weight:800;font-size:1.1vh;
+                letter-spacing:.09em;text-transform:uppercase;border-radius:.5vh;padding:.3vh .8vh;}
+  header .sub{color:var(--tinta2);font-size:1.35vh;}
+  header .sp{flex:1;}
+  header .clock{font-variant-numeric:tabular-nums;font-weight:700;font-size:2vh;}
+  header .fresh{color:var(--tinta2);font-size:1.2vh;margin-left:1vw;}
+  #temaBtn{background:transparent;border:1px solid var(--hair);color:var(--tinta2);cursor:pointer;
+           border-radius:.6vh;font-size:1.7vh;line-height:1;padding:.5vh .8vh;margin-right:1vw;}
+
+  main{flex:1;display:grid;grid-template-columns:1fr 30vw;gap:1vh 1vw;padding:1vh 1.6vw;min-height:0;}
+  #mapwrap{position:relative;border:1px solid var(--hair);border-radius:1vh;overflow:hidden;background:var(--mapbg);}
+  #gmap{position:absolute;inset:0;}
+  #mapaviso{position:absolute;left:2vh;right:2vh;top:2vh;background:var(--panel);border:1px solid var(--hair);
+            border-radius:1vh;padding:1.6vh;font-size:1.5vh;line-height:1.5;}
+
+  aside{display:flex;flex-direction:column;gap:1vh;min-height:0;}
+  .card{background:var(--panel);border:1px solid var(--hair);border-radius:1vh;padding:1.2vh 1.2vw;}
+  .card h3{margin:0 0 .8vh;font-size:1.2vh;letter-spacing:.06em;text-transform:uppercase;color:var(--tinta2);font-weight:700;}
+
+  #kpis{display:grid;grid-template-columns:repeat(2,1fr);gap:.8vh;}
+  .kpi{background:var(--panel);border:1px solid var(--hair);border-radius:1vh;padding:1vh 1vw;}
+  .kpi .big{font-size:4.4vh;font-weight:800;line-height:1;font-variant-numeric:tabular-nums;}
+  .kpi .lbl{font-size:1.2vh;color:var(--tinta2);margin-top:.4vh;}
+  .kpi.cob .big{color:var(--verde);} .kpi.pend .big{color:var(--laranja);} .kpi.hoje .big{color:var(--verde);}
+  .barwrap{height:.9vh;background:var(--minibar);border-radius:99px;overflow:hidden;margin-top:.7vh;}
+  .barwrap>i{display:block;height:100%;background:var(--verde);}
+
+  #atividade{flex:1;min-height:0;display:flex;flex-direction:column;}
+  #ativList{overflow:hidden;display:flex;flex-direction:column;gap:.7vh;margin-top:.2vh;}
+  .zrow{display:flex;align-items:center;gap:.9vw;background:var(--panel2);border:1px solid var(--hair);
+       border-radius:.9vh;padding:.9vh 1vw;}
+  .zrow .nm{font-weight:700;font-size:1.6vh;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .zrow .quando{font-size:1.25vh;color:var(--tinta2);white-space:nowrap;}
+  #ativVazio{color:var(--tinta2);font-size:1.4vh;padding:1vh 0;}
+
+  #porSistema .row{display:flex;align-items:center;gap:.8vw;padding:.55vh 0;font-size:1.35vh;}
+  #porSistema .row .nm{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  #porSistema .row .mini{width:9vw;height:.8vh;background:var(--minibar);border-radius:99px;overflow:hidden;flex:none;}
+  #porSistema .row .mini>i{display:block;height:100%;background:var(--verde);}
+  #porSistema .row .ct{font-variant-numeric:tabular-nums;color:var(--tinta2);width:4vw;text-align:right;}
+
+  footer{flex:none;border-top:1px solid var(--hair);background:var(--panel2);height:5.2vh;overflow:hidden;
+         display:flex;align-items:center;}
+  #tickerrail{display:inline-flex;gap:3vw;white-space:nowrap;padding-left:100%;
+              animation:tick 50s linear infinite;}
+  #tickerrail span{font-size:1.45vh;color:var(--tinta);}
+  #tickerrail b{color:var(--verde);}
+  #tickerrail .t{color:var(--tinta2);font-variant-numeric:tabular-nums;margin-right:.5vw;}
+  @keyframes tick{from{transform:translateX(0)}to{transform:translateX(-100%)}}
+  @media (prefers-reduced-motion:reduce){#tickerrail{animation-duration:120s;}}
+
+  #maplegenda{position:absolute;top:1.4vh;right:1.4vh;z-index:6;background:var(--labbg);
+              border:1px solid var(--hair);border-radius:1vh;padding:1.1vh 1.4vh;
+              display:flex;flex-direction:column;gap:.85vh;color:var(--tinta);
+              font-size:1.35vh;line-height:1.1;box-shadow:0 .6vh 2vh rgba(0,0,0,.35);}
+  #maplegenda .it{display:flex;align-items:center;gap:.9vh;white-space:nowrap;}
+  #maplegenda .sw{width:1.8vh;height:1.2vh;border-radius:.3vh;flex:none;}
+
+  #semacesso{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+             background:var(--bg);text-align:center;gap:1.5vh;padding:6vh;}
+  #semacesso h2{font-size:3vh;margin:0;}
+  #semacesso p{font-size:1.7vh;color:var(--tinta2);margin:0;}
+  [hidden]{display:none!important;}
+</style>
+</head>
+<body>
+
+<div id="tv">
+  <header>
+    <span class="wm">Visão&nbsp;·&nbsp;Painel de Campanhas</span>
+    <span class="badge" id="badgeAmbiente" hidden>Homologação</span>
+    <span class="sub">SEASU-COINF-STIC · TRE-MA</span>
+    <span class="sp"></span>
+    <button id="temaBtn" title="Alternar tema claro/escuro">◑</button>
+    <span class="clock" id="clock">--:--:--</span>
+    <span class="fresh" id="fresh"></span>
+  </header>
+
+  <main>
+    <section id="mapwrap">
+      <div id="gmap"></div>
+      <div id="maplegenda">
+        <div class="it"><span class="sw" style="background:#e53935"></span> nenhuma máquina pronta</div>
+        <div class="it"><span class="sw" style="background:#8bc34a"></span> parcial — 1 máquina pronta</div>
+        <div class="it"><span class="sw" style="background:#1b5e20"></span> concluído — 2+ máquinas prontas</div>
+      </div>
+      <div id="mapaviso" hidden></div>
+    </section>
+
+    <aside>
+      <div id="kpis">
+        <div class="kpi cob">
+          <div class="big"><span id="kPct">0</span>%</div>
+          <div class="lbl" id="kNomeCampanha">cobertura</div>
+          <div class="barwrap"><i id="kBar" style="width:0%"></i></div>
+        </div>
+        <div class="kpi">
+          <div class="big" id="kFeitos">0</div>
+          <div class="lbl">de <span id="kTotal">0</span> zonas concluídas</div>
+        </div>
+        <div class="kpi pend">
+          <div class="big" id="kPend">0</div>
+          <div class="lbl">pendentes</div>
+        </div>
+        <div class="kpi hoje">
+          <div class="big" id="kHoje">0</div>
+          <div class="lbl">Host/PC verificados hoje</div>
+        </div>
+      </div>
+
+      <div class="card" id="atividade">
+        <h3>Atividade recente</h3>
+        <div id="ativList"></div>
+        <div id="ativVazio" hidden>Nenhuma varredura registrada ainda.</div>
+      </div>
+
+      <div class="card" id="porSistema">
+        <h3>Por sistema exigido</h3>
+        <div id="sistemaList"></div>
+      </div>
+    </aside>
+  </main>
+
+  <footer><div id="tickerrail"><span>Carregando atividade…</span></div></footer>
+</div>
+
+<script>
+  function el(id){ return document.getElementById(id); }
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+
+  var AMBIENTE = <?!= JSON.stringify(ambiente) ?>;
+  if (AMBIENTE === 'homologacao') { el('badgeAmbiente').hidden = false; }
+  var DADOS_GERAIS = <?!= dadosGeraisJson ?>;
+  var DADOS_CAMPANHAS = <?!= dadosCampanhasJson ?>;
+  var DADOS_MAPA = <?!= dadosMapaJson ?>;
+  var CORES_TIER = { 0:'#e53935', 1:'#8bc34a', 2:'#1b5e20' };
+
+  var TV = { map:null, malhaOk:false, gmapsPromise:null, tema:'escuro',
+             maBounds:null, fitPad:34 };
+
+  /* ---------- tema (claro/escuro): URL ?tema= > localStorage > escuro ---------- */
+  (function(){
+    var q = (new URLSearchParams(location.search).get('tema') || '').toLowerCase();
+    var ls = '';
+    try { ls = localStorage.getItem('visao-tv-tema') || ''; } catch(e){}
+    TV.tema = (q === 'claro' || q === 'escuro') ? q : ((ls === 'claro' || ls === 'escuro') ? ls : 'escuro');
+    aplicarTema();
+  })();
+  function aplicarTema(){
+    document.documentElement.setAttribute('data-tema', TV.tema);
+    var b = el('temaBtn'); if (b) b.textContent = (TV.tema === 'claro') ? '☾' : '◑';
+  }
+  el('temaBtn').addEventListener('click', function(){
+    TV.tema = (TV.tema === 'claro') ? 'escuro' : 'claro';
+    try { localStorage.setItem('visao-tv-tema', TV.tema); } catch(e){}
+    aplicarTema();
+    if (TV.map){
+      TV.map.setOptions({ styles: (TV.tema === 'claro') ? LIGHT : DARK });
+      if (TV.malhaOk) TV.map.data.setStyle(estiloFeature);
+    }
+  });
+
+  /* ---------- relógio + "atualizado há" ---------- */
+  var ultimaAtualizacao = Date.now();
+  setInterval(function(){
+    var d = new Date();
+    el('clock').textContent = d.toLocaleTimeString('pt-BR');
+    var seg = Math.round((Date.now() - ultimaAtualizacao)/1000);
+    el('fresh').textContent = 'atualizado há ' + (seg < 60 ? (seg+'s') : (Math.floor(seg/60)+' min'));
+  }, 1000);
+
+  /* ---------- Google Maps ---------- */
+  function carregarGMaps(key){
+    if (TV.gmapsPromise) return TV.gmapsPromise;
+    TV.gmapsPromise = new Promise(function(resolve, reject){
+      window.__tvMapsReady = function(){ resolve(); };
+      var s = document.createElement('script');
+      s.src = 'https://maps.googleapis.com/maps/api/js?key=' + encodeURIComponent(key) +
+              '&callback=__tvMapsReady&language=pt-BR&region=BR';
+      s.async = true;
+      s.onerror = function(){ reject(new Error('falha ao baixar o Maps')); };
+      document.head.appendChild(s);
+    });
+    return TV.gmapsPromise;
+  }
+
+  var DARK = [
+    {elementType:'geometry',stylers:[{color:'#0f1b14'}]},
+    {elementType:'labels.text.stroke',stylers:[{color:'#0a0e1a'}]},
+    {elementType:'labels.text.fill',stylers:[{color:'#7ba58c'}]},
+    {featureType:'administrative',elementType:'geometry',stylers:[{color:'#26402f'}]},
+    {featureType:'poi',stylers:[{visibility:'off'}]},
+    {featureType:'road',stylers:[{visibility:'off'}]},
+    {featureType:'transit',stylers:[{visibility:'off'}]},
+    {featureType:'water',elementType:'geometry',stylers:[{color:'#0c1a12'}]},
+    {featureType:'water',elementType:'labels.text.fill',stylers:[{color:'#3a6050'}]}
+  ];
+  var LIGHT = [
+    {elementType:'geometry',stylers:[{color:'#eef1f6'}]},
+    {elementType:'labels.text.stroke',stylers:[{color:'#ffffff'}]},
+    {elementType:'labels.text.fill',stylers:[{color:'#6b7590'}]},
+    {featureType:'administrative',elementType:'geometry',stylers:[{color:'#c4ccdd'}]},
+    {featureType:'poi',stylers:[{visibility:'off'}]},
+    {featureType:'road',stylers:[{visibility:'off'}]},
+    {featureType:'transit',stylers:[{visibility:'off'}]},
+    {featureType:'water',elementType:'geometry',stylers:[{color:'#dbe4f0'}]}
+  ];
+
+  function iniciarMapa(){
+    if (TV.map) return;
+    TV.map = new google.maps.Map(el('gmap'), {
+      center:{lat:-5.2,lng:-45.3}, zoom:6, mapTypeId:'roadmap', disableDefaultUI:true,
+      gestureHandling:'none', keyboardShortcuts:false, clickableIcons:false,
+      isFractionalZoomEnabled:true,
+      styles:(TV.tema === 'claro') ? LIGHT : DARK
+    });
+    var rt;
+    window.addEventListener('resize', function(){ clearTimeout(rt); rt = setTimeout(enquadrarMA, 250); });
+    carregarMalha();
+  }
+
+  function enquadrarMA(){
+    if (!TV.map || !TV.maBounds) return;
+    TV.map.fitBounds(TV.maBounds, TV.fitPad);
+  }
+
+  function carregarMalha(){
+    google.script.run.withSuccessHandler(function(txt){
+      try{
+        var geo = JSON.parse(txt);
+        TV.map.data.addGeoJson(geo);
+        TV.malhaOk = true;
+        TV.map.data.setStyle(estiloFeature);
+        var b = new google.maps.LatLngBounds();
+        TV.map.data.forEach(function(f){ f.getGeometry().forEachLatLng(function(ll){ b.extend(ll); }); });
+        if(!b.isEmpty()){ TV.maBounds = b; enquadrarMA(); }
+      }catch(e){}
+    }).withFailureHandler(function(){}).obterGeojsonMunicipios();
+  }
+
+  function estiloFeature(feature){
+    var nome = (feature.getProperty('nome') || '').toUpperCase();
+    var tier = (DADOS_MAPA.tierPorMunicipio && (nome in DADOS_MAPA.tierPorMunicipio)) ? DADOS_MAPA.tierPorMunicipio[nome] : 0;
+    return { fillColor: CORES_TIER[tier], fillOpacity: .68, strokeColor: '#0b1a10', strokeWeight: .6 };
+  }
+
+  /* ---------- renderizacao dos dados ---------- */
+  function renderizarKpis(){
+    var r = (DADOS_CAMPANHAS.resumoPorCampanha || []).filter(function(c){ return c.nome === DADOS_CAMPANHAS.campanhaEscolhida; })[0]
+      || { percentualCobertura:0, zonasConcluidas:0, totalZonas:0, pendentes:0 };
+    el('kPct').textContent = r.percentualCobertura;
+    el('kBar').style.width = r.percentualCobertura + '%';
+    el('kNomeCampanha').textContent = DADOS_CAMPANHAS.campanhaEscolhida || 'cobertura';
+    el('kFeitos').textContent = r.zonasConcluidas;
+    el('kTotal').textContent = r.totalZonas;
+    el('kPend').textContent = r.pendentes;
+    var resumoHoje = DADOS_GERAIS.resumoHoje || { hostPcHoje:0 };
+    el('kHoje').textContent = resumoHoje.hostPcHoje;
+  }
+
+  function tempoRelativo(dataTexto){
+    var data = new Date(dataTexto);
+    if (isNaN(data.getTime())) return dataTexto;
+    var diffMin = Math.round((new Date() - data)/60000);
+    if (diffMin < 1) return 'agora mesmo';
+    if (diffMin < 60) return 'há ' + diffMin + ' min';
+    var diffHoras = Math.round(diffMin/60);
+    if (diffHoras < 24) return 'há ' + diffHoras + ' h';
+    return 'há ' + Math.round(diffHoras/24) + ' d';
+  }
+
+  function renderizarAtividade(){
+    // Card lateral "Atividade recente" - continua generico (qualquer
+    // varredura), independente de campanha - mesmo dado do Painel.
+    var lista = DADOS_GERAIS.ultimaAtividadePorZona || [];
+    var rows = lista.map(function(a){
+      return '<div class="zrow"><span class="nm">ZE '+esc(a.zona)+' - '+esc(a.sede)+'</span>'+
+        '<span class="quando">'+esc(tempoRelativo(a.quando))+'</span></div>';
+    });
+    el('ativList').innerHTML = rows.join('');
+    el('ativVazio').hidden = rows.length > 0;
+    el('ativList').hidden = rows.length === 0;
+  }
+
+  function renderizarTicker(){
+    // Rodape - SO' zonas que viraram CONCLUIDA (2+ maquinas prontas) na
+    // campanha em exibicao (pedido do usuario, 2026-09-09) - antes
+    // mostrava qualquer atividade, o que nao dizia nada sobre progresso
+    // de verdade. Ver calcularZonasConcluidasRecentes_ (Code.gs).
+    var ev = (DADOS_CAMPANHAS.zonasConcluidasRecentes || []).slice(0, 20);
+    var rail = el('tickerrail');
+    rail.innerHTML = ev.map(function(a){
+      return '<span>✓ <b>ZE '+esc(a.zona)+'</b> — '+esc(a.sede)+' concluída <span class="t">'+esc(tempoRelativo(a.quando))+'</span></span>';
+    }).join('') || '<span>Nenhuma zona concluída ainda nesta campanha.</span>';
+    rail.style.animation = 'none'; void rail.offsetWidth; rail.style.animation = '';
+  }
+
+  function renderizarPorSistema(){
+    el('sistemaList').innerHTML = (DADOS_CAMPANHAS.porSistemaExigido || []).map(function(s){
+      var pct = s.totalZonas > 0 ? Math.round((s.zonasProntas / s.totalZonas) * 100) : 0;
+      var rotulo = s.sistema + ' (v' + s.versaoMinima + '+)';
+      return '<div class="row"><span class="nm" title="'+esc(rotulo)+'">'+esc(rotulo)+'</span>'+
+        '<span class="mini"><i style="width:'+pct+'%"></i></span>'+
+        '<span class="ct">'+s.zonasProntas+'/'+s.totalZonas+'</span></div>';
+    }).join('') || '<div class="row"><span class="nm">Nenhum requisito nesta campanha.</span></div>';
+  }
+
+  function renderizarTudo(){
+    ultimaAtualizacao = Date.now();
+    renderizarKpis();
+    renderizarAtividade();
+    renderizarTicker();
+    renderizarPorSistema();
+  }
+
+  /* ---------- polling (recarrega os mesmos dados periodicamente) ---------- */
+  function atualizarDados(){
+    var campanhaAtual = DADOS_CAMPANHAS.campanhaEscolhida;
+    google.script.run.withSuccessHandler(function(d){ DADOS_GERAIS = d; renderizarTudo(); }).obterDadosGerais();
+    google.script.run.withSuccessHandler(function(d){ DADOS_CAMPANHAS = d; renderizarTudo(); }).obterDadosCampanhas(campanhaAtual);
+    google.script.run.withSuccessHandler(function(d){
+      DADOS_MAPA = d;
+      if (TV.malhaOk) TV.map.data.setStyle(estiloFeature);
+    }).obterDadosMapa(campanhaAtual);
+  }
+
+  /* ---------- inicio ---------- */
+  renderizarTudo();
+  carregarGMaps('<?= mapsApiKey ?>').then(iniciarMapa).catch(function(e){
+    el('mapaviso').innerHTML = '<b>Não foi possível carregar o Google Maps.</b> ' + esc((e&&e.message)||e);
+    el('mapaviso').hidden = false;
+  });
+  setInterval(atualizarDados, 90000);
+  // anti-ociosidade leve (alguns navegadores desaceleram timers em abas "paradas")
+  setInterval(function(){ document.title = 'Visão TV · ' + new Date().toLocaleTimeString('pt-BR'); }, 30000);
+</script>
+</body>
+</html>

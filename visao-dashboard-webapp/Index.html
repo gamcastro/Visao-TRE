@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <style>
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; background: #f2f4f7; color: #223; }
+    #cabecalho { background: #14532d; color: white; padding: 14px 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+    #cabecalho h1 { font-size: 18px; margin: 0; font-weight: bold; }
+    #infoUsuario { font-size: 12px; opacity: .85; }
+    .tituloCabecalho { display: flex; align-items: center; gap: 10px; }
+    .badgeAmbiente { background: #f2b705; color: #3a2e00; font-weight: bold; font-size: 11px; letter-spacing: .05em; text-transform: uppercase; padding: 3px 10px; border-radius: 6px; }
+    #abas { display: flex; gap: 8px; padding: 14px 24px 0; }
+    .aba { background: white; border: none; padding: 9px 20px; border-radius: 8px 8px 0 0; font-size: 13px; font-weight: bold; color: #556; cursor: pointer; }
+    .aba.ativa { background: #14532d; color: white; }
+    .conteudoAba { display: none; padding: 16px 24px 32px; }
+    .conteudoAba.ativa { display: block; }
+
+    .linhaTopo { display: flex; gap: 16px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+    .cardMini { background: white; border-radius: 10px; padding: 12px 20px; box-shadow: 0 1px 6px rgba(0,0,0,.1); font-size: 13px; }
+    .cardMini b { font-size: 22px; color: #14532d; display: block; }
+
+    .seletorLocal { font-size: 13px; padding: 7px 12px; border-radius: 6px; border: 1px solid #ccd; background: white; }
+
+    .grade { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; margin-bottom: 20px; }
+    .card { background: white; border-radius: 10px; padding: 16px 20px; box-shadow: 0 1px 6px rgba(0,0,0,.1); }
+    .card h3 { margin: 0 0 10px; font-size: 14px; color: #334; }
+    .card .numero { font-size: 26px; font-weight: bold; color: #14532d; }
+    .card .sub { font-size: 12px; color: #778; margin-top: 2px; }
+    .card .barraFundo { height: 8px; background: #e2e6ec; border-radius: 6px; overflow: hidden; margin-top: 10px; }
+    .card .barra { height: 100%; background: #2e7d32; }
+
+    .cardLista { background: white; border-radius: 10px; padding: 16px 20px; box-shadow: 0 1px 6px rgba(0,0,0,.1); margin-bottom: 20px; }
+    .cardLista h3 { margin: 0 0 10px; font-size: 14px; color: #334; }
+    .linhaLista { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #f0f0f0; font-size: 13px; gap: 10px; }
+    .linhaLista:last-child { border-bottom: none; }
+    .linhaLista .rotulo { color: #445; }
+    .linhaLista .valor { font-weight: bold; color: #14532d; white-space: nowrap; }
+
+    /* Graficos do Painel (2026-09-09) - donut e barras em CSS puro, sem
+       biblioteca externa (mesmo espirito minimalista da barraFundo/barra
+       ja usada nos cards de campanha). */
+    .donutWrap { position: relative; width: 150px; height: 150px; margin: 6px auto 14px; }
+    .donut { width: 100%; height: 100%; border-radius: 50%; }
+    .donutCentro { position: absolute; inset: 20px; background: white; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: inset 0 0 0 1px #f0f0f0; }
+    .donutCentro b { font-size: 22px; color: #14532d; }
+    .donutCentro span { font-size: 10px; color: #778; text-align: center; }
+    .donutLegenda { display: flex; justify-content: center; gap: 18px; font-size: 12px; flex-wrap: wrap; }
+    .donutLegenda .itemLegenda { display: flex; align-items: center; gap: 6px; color: #445; }
+    .donutLegenda .corLegenda { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+
+    .linhaBarra { margin-bottom: 14px; }
+    .linhaBarra:last-child { margin-bottom: 0; }
+    .linhaBarra .rotuloBarraTopo { display: flex; justify-content: space-between; font-size: 12px; color: #445; margin-bottom: 4px; }
+    .linhaBarra .rotuloBarraTopo .subBarra { color: #778; font-weight: normal; }
+    .trilhaBarraFundo { height: 14px; background: #eef1f0; border-radius: 7px; overflow: hidden; }
+    .trilhaBarraTotal { height: 100%; background: #a5d6a7; border-radius: 7px; }
+    .trilhaBarraNova { height: 100%; background: #14532d; border-radius: 7px; }
+
+    .graficoBarras7Dias { display: flex; justify-content: space-between; align-items: flex-end; height: 150px; gap: 6px; margin-top: 4px; }
+    .colBarra7Dias { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; }
+    .colBarra7Dias .valorBarra7Dias { font-size: 11px; color: #445; margin-bottom: 4px; }
+    .colBarra7Dias .trilhaVertical7Dias { width: 100%; max-width: 28px; flex: 1; display: flex; align-items: flex-end; background: #eef1f0; border-radius: 4px; overflow: hidden; }
+    .colBarra7Dias .barraVertical7Dias { width: 100%; background: #14532d; border-radius: 4px 4px 0 0; min-height: 2px; }
+    .colBarra7Dias .rotuloDiaBarra7Dias { font-size: 10px; color: #778; margin-top: 4px; }
+
+    /* Bloco destacado da aba Campanhas - contraste maior, pedido do usuario */
+    #blocoDetalheCampanha { background: #e8f3ec; border: 2px solid #14532d; border-radius: 12px; padding: 18px 20px; margin-bottom: 20px; }
+    #blocoDetalheCampanha .cabecalhoBloco { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+    #blocoDetalheCampanha .cabecalhoBloco span { font-size: 13px; font-weight: bold; color: #14532d; }
+    #blocoDetalheCampanha .grade { margin-bottom: 0; }
+    #blocoDetalheCampanha .cardLista { margin-bottom: 0; box-shadow: none; border: 1px solid #cde0d3; }
+
+    #buscaCampanhas { display: flex; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+    #buscaCampanhas input[type=text] { flex: 1; min-width: 220px; padding: 8px 12px; border-radius: 6px; border: 1px solid #ccd; font-size: 13px; }
+    table.tabelaBusca, table.tabelaAcesso { width: 100%; border-collapse: collapse; font-size: 13px; }
+    table.tabelaBusca th, table.tabelaAcesso th { text-align: left; padding: 8px 10px; border-bottom: 2px solid #e2e6ec; color: #556; }
+    table.tabelaBusca td, table.tabelaAcesso td { padding: 8px 10px; border-bottom: 1px solid #f0f0f0; }
+    .selo { padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: bold; }
+    .seloPronta { background: #d7f0d9; color: #1b5e20; }
+    .seloNaoPronta { background: #fbe1e0; color: #b71c1c; }
+    .seloAtivo { background: #d7f0d9; color: #1b5e20; }
+    .seloInativo { background: #eee; color: #888; }
+    .seloTv { background: #d6e4ff; color: #1a3d8f; margin-left: 6px; }
+
+    #formAcesso { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+    #formAcesso input[type=text] { flex: 1; min-width: 240px; padding: 8px 12px; border-radius: 6px; border: 1px solid #ccd; font-size: 13px; }
+    #formAcesso button { background: #14532d; color: white; border: none; padding: 9px 18px; border-radius: 6px; font-size: 13px; font-weight: bold; cursor: pointer; }
+    .botaoLink { background: none; border: none; color: #14532d; text-decoration: underline; cursor: pointer; font-size: 12px; padding: 0 4px; }
+    .botaoLink.perigo { color: #b71c1c; }
+
+    /* Gerenciar campanhas (admin) */
+    .linhaRequisito { display: flex; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; align-items: center; }
+    .linhaRequisito select, .linhaRequisito input[type=text] { padding: 7px 10px; border-radius: 6px; border: 1px solid #ccd; font-size: 13px; }
+    .linhaRequisito input[type=text] { width: 110px; }
+    #formNovaCampanha input#nomeNovaCampanha { padding: 8px 12px; border-radius: 6px; border: 1px solid #ccd; font-size: 13px; width: 100%; max-width: 360px; margin-bottom: 10px; }
+    .botaoSecundario { background: white; color: #14532d; border: 1px solid #14532d; padding: 7px 14px; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; }
+    .botaoPrimario { background: #14532d; color: white; border: none; padding: 9px 18px; border-radius: 6px; font-size: 13px; font-weight: bold; cursor: pointer; }
+    .blocoCampanhaAdmin { border: 1px solid #e2e6ec; border-radius: 10px; padding: 14px 16px; margin-bottom: 14px; }
+    .blocoCampanhaAdmin .cabecalhoCampanhaAdmin { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 8px; }
+    .blocoCampanhaAdmin .cabecalhoCampanhaAdmin b { font-size: 14px; color: #223; }
+    .avisoErro { color: #b71c1c; font-size: 12px; margin-top: 6px; }
+
+    /* Overlay "Gerenciar campanhas" - modal simulado (Web App standalone
+       nao tem showModalDialog do Apps Script, isso so existe pra script
+       vinculado a Sheets/Docs/Forms) */
+    #overlayCampanhas { position: fixed; inset: 0; background: rgba(20,30,25,.55); z-index: 50; align-items: flex-start; justify-content: center; overflow: auto; padding: 40px 16px; }
+    #overlayCampanhas .overlayPainel { background: #f2f4f7; border-radius: 12px; max-width: 900px; width: 100%; padding: 20px 24px 28px; box-shadow: 0 8px 40px rgba(0,0,0,.4); }
+    #overlayCampanhas .overlayCabecalho { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    #overlayCampanhas .overlayCabecalho h2 { margin: 0; font-size: 17px; color: #14532d; }
+    .botaoFecharOverlay { background: none; border: none; font-size: 22px; cursor: pointer; color: #667; line-height: 1; padding: 4px 10px; }
+
+    #areaMapa { position: relative; height: 600px; border-radius: 10px; overflow: hidden; box-shadow: 0 1px 6px rgba(0,0,0,.1); }
+    #mapa { width: 100%; height: 100%; }
+    #legendaMapa { position: absolute; bottom: 16px; left: 16px; background: white; padding: 10px 16px; border-radius: 8px; box-shadow: 0 1px 6px rgba(0,0,0,.35); font-size: 13px; z-index: 5; line-height: 1.6; }
+    #legendaMapa .linha { display: flex; align-items: center; }
+    #legendaMapa .cor { width: 14px; height: 14px; display: inline-block; margin-right: 8px; border-radius: 3px; }
+    #carregandoMapa { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 14px; color: #667; z-index: 4; }
+  </style>
+</head>
+<body>
+  <div id="cabecalho">
+    <div class="tituloCabecalho">
+      <h1>Visão Web</h1>
+      <span class="badgeAmbiente" id="badgeAmbiente" hidden>Homologação</span>
+    </div>
+    <div id="infoUsuario"></div>
+  </div>
+
+  <div id="abas">
+    <button class="aba ativa" data-aba="painel" onclick="mostrarAba('painel')">Painel</button>
+    <button class="aba" data-aba="campanhas" onclick="mostrarAba('campanhas')">Campanhas</button>
+    <button class="aba" data-aba="mapa" onclick="mostrarAba('mapa')">Mapa</button>
+    <button class="aba" data-aba="acesso" id="botaoAbaAcesso" style="display:none" onclick="mostrarAba('acesso')">Acesso</button>
+  </div>
+
+  <!-- ================= PAINEL (geral, sem campanha) ================= -->
+  <div id="abaPainel" class="conteudoAba ativa">
+    <div class="linhaTopo" id="cardsGerais"></div>
+
+    <div class="grade">
+      <div class="cardLista" id="cardCoberturaGeral">
+        <h3>Zonas com campanha atendida</h3>
+        <div class="donutWrap" id="donutCobertura"></div>
+        <div class="donutLegenda" id="legendaCobertura"></div>
+      </div>
+      <div class="cardLista" id="cardPorSistema">
+        <h3>Por Sistema (versão mais nova)</h3>
+        <div class="listaConteudo"></div>
+      </div>
+      <div class="cardLista" id="cardAtividade">
+        <h3>Atividade recente</h3>
+        <div id="resumoHojeAtividade" style="font-size:13px;color:#334;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid #f0f0f0"></div>
+        <div class="listaConteudo"></div>
+      </div>
+      <div class="cardLista" id="card7Dias">
+        <h3>Atividade dos últimos 7 dias</h3>
+        <div class="graficoBarras7Dias" id="graficoAtividade7Dias"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= CAMPANHAS ================= -->
+  <div id="abaCampanhas" class="conteudoAba">
+    <div class="grade" id="cardsCampanhas"></div>
+
+    <div id="blocoDetalheCampanha">
+      <div class="cabecalhoBloco">
+        <span>Detalhe da campanha:</span>
+        <select class="seletorLocal" id="seletorCampanhaCampanhas" onchange="trocarCampanhaAba(this.value)"></select>
+        <button class="botaoSecundario" id="botaoAbrirGerenciarCampanhas" style="display:none;margin-left:auto" onclick="abrirModalCampanhas()">⚙ Gerenciar campanhas</button>
+      </div>
+      <div class="grade">
+        <div class="cardLista" id="cardPorModelo">
+          <h3>Por modelo de máquina</h3>
+          <div class="listaConteudo"></div>
+        </div>
+        <div class="cardLista" id="cardMelhores">
+          <h3>Zonas Eleitorais mais adiantadas</h3>
+          <div class="listaConteudo"></div>
+        </div>
+        <div class="cardLista" id="cardPiores">
+          <h3>Zonas Eleitorais mais atrasadas</h3>
+          <div class="listaConteudo"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="cardLista">
+      <h3>Buscar máquinas <span style="font-weight:normal;color:#778;font-size:12px" id="rotuloCampanhaBusca"></span></h3>
+      <div id="buscaCampanhas">
+        <input type="text" id="textoBusca" placeholder="Buscar por hostname, IP, zona ou município..." oninput="filtrarTabelaBusca()">
+        <select class="seletorLocal" id="filtroStatus" onchange="filtrarTabelaBusca()">
+          <option value="todas">Todas as máquinas</option>
+          <option value="prontas">Só prontas</option>
+          <option value="naoProntas">Só não prontas</option>
+        </select>
+      </div>
+      <div style="max-height:420px;overflow:auto">
+        <table class="tabelaBusca">
+          <thead><tr><th>Hostname</th><th>IP</th><th>ZE</th><th>Município</th><th>Modelo</th><th>Status</th><th>Última atualização</th></tr></thead>
+          <tbody id="corpoTabelaBusca"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MAPA ================= -->
+  <div id="abaMapa" class="conteudoAba">
+    <div class="linhaTopo">
+      <span style="font-size:13px;color:#556">Campanha:</span>
+      <select class="seletorLocal" id="seletorCampanhaMapa" onchange="trocarCampanhaMapa(this.value)"></select>
+    </div>
+    <div id="areaMapa">
+      <div id="mapa"></div>
+      <div id="carregandoMapa">Carregando mapa...</div>
+      <div id="legendaMapa" style="display:none">
+        <div class="linha"><span class="cor" style="background:#e53935"></span> Não instalado (0 máquinas prontas)</div>
+        <div class="linha"><span class="cor" style="background:#8bc34a"></span> Parcial (1 máquina pronta)</div>
+        <div class="linha"><span class="cor" style="background:#1b5e20"></span> Concluído (2+ máquinas prontas)</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= ACESSO (so admin) ================= -->
+  <div id="abaAcesso" class="conteudoAba">
+    <div class="cardLista">
+      <h3>Quem acessa o Visão Web</h3>
+      <p style="font-size:12px;color:#667">
+        <b>leitura</b> = vê Painel/Campanhas/Mapa. <b>admin</b> = também gerencia esta lista.
+        Desativar tira o acesso sem apagar a linha (fica no histórico).
+      </p>
+      <div id="formAcesso">
+        <input type="text" id="emailNovoAcesso" placeholder="email@tre-ma.jus.br">
+        <select class="seletorLocal" id="papelNovoAcesso"><option value="leitura">leitura</option><option value="admin">admin</option></select>
+        <input type="text" id="obsNovoAcesso" placeholder="Observação (opcional)" style="max-width:220px">
+        <button onclick="salvarNovoAcesso()">Adicionar / atualizar</button>
+      </div>
+      <table class="tabelaAcesso">
+        <thead><tr><th>E-mail</th><th>Papel</th><th>Ativo</th><th>Obs.</th><th></th></tr></thead>
+        <tbody id="corpoTabelaAcesso"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ================= OVERLAY "Gerenciar campanhas" (so admin) =================
+       Modal simulado em HTML/CSS/JS (aberto/fechado via display, nao via
+       aba) - abre a partir do botao na aba Campanhas. Fica FORA do fluxo
+       normal de abas de proposito, pra sobrepor a tela inteira. -->
+  <div id="overlayCampanhas" style="display:none" onclick="if (event.target === this) fecharModalCampanhas()">
+    <div class="overlayPainel">
+      <div class="overlayCabecalho">
+        <h2>Gerenciar campanhas</h2>
+        <button class="botaoFecharOverlay" onclick="fecharModalCampanhas()">✕</button>
+      </div>
+
+      <div class="cardLista" id="cardNovaCampanha">
+        <h3>Criar campanha</h3>
+        <div id="formNovaCampanha">
+          <input type="text" id="nomeNovaCampanha" placeholder="Nome da campanha (ex: SIMULADO TDTOT 4)">
+          <div id="linhasRequisitoNovo"></div>
+          <button class="botaoSecundario" onclick="adicionarLinhaRequisitoNovo()">+ adicionar sistema</button>
+          <div style="margin-top:12px">
+            <button class="botaoPrimario" onclick="salvarNovaCampanha()">Criar campanha</button>
+          </div>
+          <div class="avisoErro" id="erroNovaCampanha"></div>
+        </div>
+      </div>
+
+      <div class="cardLista">
+        <h3>Campanhas cadastradas</h3>
+        <p style="font-size:12px;color:#667">
+          Desativar uma campanha some com o card dela na página principal (Campanhas/Mapa) sem apagar o histórico -
+          pode reativar a qualquer momento. Editar a versão mínima de um sistema afeta imediatamente quem já está "pronto".
+        </p>
+        <div id="listaCampanhasAdmin"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    var AMBIENTE = <?!= JSON.stringify(ambiente) ?>;
+    var USUARIO_ATUAL = <?!= usuarioAtualJson ?>;
+    var DADOS_GERAIS = <?!= dadosGeraisJson ?>;
+    var DADOS_CAMPANHAS = <?!= dadosCampanhasJson ?>;
+    var DADOS_MAPA = null;
+    var LISTA_ACESSO = null;
+    var ROTULOS_TIER = { 0: 'Não instalado', 1: 'Parcial (1 pronta)', 2: 'Concluído (2+ prontas)' };
+    var CORES_TIER = { 0: '#e53935', 1: '#8bc34a', 2: '#1b5e20' };
+    var map = null;
+    var geojsonCarregado = false;
+    var geojsonMunicipios = null;
+    var SISTEMAS_DISPONIVEIS = null;
+    var CAMPANHAS_ADMIN = null;
+
+    function mostrarAba(nomeAba) {
+      document.querySelectorAll('.aba').forEach(function (b) { b.classList.toggle('ativa', b.dataset.aba === nomeAba); });
+      document.querySelectorAll('.conteudoAba').forEach(function (d) { d.classList.remove('ativa'); });
+      document.getElementById('aba' + nomeAba.charAt(0).toUpperCase() + nomeAba.slice(1)).classList.add('ativa');
+      if (nomeAba === 'mapa') { garantirMapaCarregado(); }
+      if (nomeAba === 'acesso') { garantirListaAcessoCarregada(); }
+    }
+
+    function iniciarCabecalho() {
+      if (AMBIENTE === 'homologacao') { document.getElementById('badgeAmbiente').hidden = false; }
+      document.getElementById('infoUsuario').textContent = USUARIO_ATUAL.email + ' · ' + USUARIO_ATUAL.papel;
+      if (USUARIO_ATUAL.papel === 'admin') {
+        document.getElementById('botaoAbaAcesso').style.display = '';
+        document.getElementById('botaoAbrirGerenciarCampanhas').style.display = '';
+      }
+    }
+
+    // ---------- OVERLAY "Gerenciar campanhas" ----------
+    function abrirModalCampanhas() {
+      document.getElementById('overlayCampanhas').style.display = 'flex';
+      garantirAdminCampanhasCarregado();
+    }
+    function fecharModalCampanhas() {
+      document.getElementById('overlayCampanhas').style.display = 'none';
+    }
+
+    // ---------- PAINEL ----------
+    function renderizarPainel() {
+      var vg = DADOS_GERAIS.visaoGeral || { comAlgumaCampanha: 0, semNenhuma: 0, totalZonas: 0 };
+      document.getElementById('cardsGerais').innerHTML =
+        '<div class="cardMini"><b>' + DADOS_GERAIS.totalMaquinas + '</b>máquinas no inventário</div>' +
+        '<div class="cardMini"><b>' + DADOS_GERAIS.totalZonas + '</b>zonas eleitorais cadastradas</div>' +
+        '<div class="cardMini"><b>' + vg.comAlgumaCampanha + '</b>zonas atendem pelo menos 1 campanha</div>' +
+        '<div class="cardMini"><b>' + vg.semNenhuma + '</b>zonas sem nenhuma campanha atendida</div>';
+
+      renderizarPorSistemaBarras();
+
+      var resumo = DADOS_GERAIS.resumoHoje || { zonasHoje: 0, hostPcHoje: 0 };
+      document.getElementById('resumoHojeAtividade').innerHTML =
+        '<b>' + resumo.zonasHoje + '</b> zona(s) escaneada(s) hoje · <b>' + resumo.hostPcHoje + '</b> Host/PC identificados';
+
+      document.querySelector('#cardAtividade .listaConteudo').innerHTML = (DADOS_GERAIS.ultimaAtividadePorZona || []).map(function (a) {
+        return '<div class="linhaLista"><span class="rotulo">ZE ' + a.zona + ' (' + a.sede + ')</span><span class="valor">' + formatarTempoRelativo(a.quando) + '</span></div>';
+      }).join('') || '<div class="linhaLista">Sem varreduras registradas ainda.</div>';
+
+      renderizarDonutCobertura();
+      renderizarAtividade7Dias();
+    }
+
+    // Donut "Zonas com campanha atendida" - conic-gradient puro em CSS,
+    // sem biblioteca de grafico (2026-09-09, pedido do usuario pra
+    // preencher o espaco vazio da aba Painel).
+    function renderizarDonutCobertura() {
+      var vg = DADOS_GERAIS.visaoGeral || { comAlgumaCampanha: 0, semNenhuma: 0, totalZonas: 0 };
+      var percentual = vg.totalZonas > 0 ? Math.round((vg.comAlgumaCampanha / vg.totalZonas) * 100) : 0;
+      document.getElementById('donutCobertura').innerHTML =
+        '<div class="donut" style="background: conic-gradient(#14532d 0% ' + percentual + '%, #e2e6ec ' + percentual + '% 100%)"></div>' +
+        '<div class="donutCentro"><b>' + percentual + '%</b><span>com campanha atendida</span></div>';
+      document.getElementById('legendaCobertura').innerHTML =
+        '<span class="itemLegenda"><span class="corLegenda" style="background:#14532d"></span>' + vg.comAlgumaCampanha + ' com campanha</span>' +
+        '<span class="itemLegenda"><span class="corLegenda" style="background:#e2e6ec"></span>' + vg.semNenhuma + ' sem nenhuma</span>';
+    }
+
+    // Barras horizontais "Por Sistema" - trilha clara = total instalado,
+    // trilha escura (dentro da clara) = quantos ja estao na versao mais
+    // nova. Substitui a lista simples de antes pela mesma informacao,
+    // so que visual.
+    function renderizarPorSistemaBarras() {
+      var lista = DADOS_GERAIS.porSistema || [];
+      var maiorTotal = Math.max.apply(null, lista.map(function (s) { return s.totalInstaladas; }).concat([1]));
+      document.querySelector('#cardPorSistema .listaConteudo').innerHTML = lista.map(function (s) {
+        var larguraTotal = Math.round((s.totalInstaladas / maiorTotal) * 100);
+        var larguraNova = s.totalInstaladas > 0 ? Math.round((s.naVersaoMaisNova / s.totalInstaladas) * 100) : 0;
+        var subRotulo = s.versaoMaisNova ? (s.naVersaoMaisNova + ' na versão ' + s.versaoMaisNova) : 'nenhuma instalada';
+        return '<div class="linhaBarra">' +
+          '<div class="rotuloBarraTopo"><span>' + s.sistema + ' - ' + s.totalInstaladas + ' instalada(s)</span><span class="subBarra">' + subRotulo + '</span></div>' +
+          '<div class="trilhaBarraFundo"><div class="trilhaBarraTotal" style="width:' + larguraTotal + '%">' +
+          '<div class="trilhaBarraNova" style="width:' + larguraNova + '%"></div></div></div>' +
+          '</div>';
+      }).join('') || '<div class="linhaLista">Sem dados ainda.</div>';
+    }
+
+    // Barras verticais "Atividade dos ultimos 7 dias" - Host/PC
+    // identificados por dia (mesmo criterio Tipo="Host / PC" ja usado no
+    // resumo de hoje).
+    function renderizarAtividade7Dias() {
+      var dias = DADOS_GERAIS.atividade7Dias || [];
+      var maiorValor = Math.max.apply(null, dias.map(function (d) { return d.hostPc; }).concat([1]));
+      document.getElementById('graficoAtividade7Dias').innerHTML = dias.map(function (d) {
+        var altura = Math.round((d.hostPc / maiorValor) * 100);
+        return '<div class="colBarra7Dias">' +
+          '<div class="valorBarra7Dias">' + d.hostPc + '</div>' +
+          '<div class="trilhaVertical7Dias"><div class="barraVertical7Dias" style="height:' + altura + '%"></div></div>' +
+          '<div class="rotuloDiaBarra7Dias">' + d.rotulo + '</div>' +
+          '</div>';
+      }).join('') || '<div class="linhaLista">Sem dados ainda.</div>';
+    }
+
+    function formatarTempoRelativo(dataTexto) {
+      // Opcao A (2026-09-09) - hora legivel em vez do ISO tecnico
+      // ("2026-09-09T04:37:40.000Z") que confundia. "quando" vem como
+      // Date serializado (JSON.stringify de um objeto Date do Apps
+      // Script vira ISO 8601) - parseia normal com "new Date(...)".
+      var data = new Date(dataTexto);
+      if (isNaN(data.getTime())) { return dataTexto; }
+      var diffMs = new Date() - data;
+      var diffMin = Math.round(diffMs / 60000);
+      if (diffMin < 1) { return 'agora mesmo'; }
+      if (diffMin < 60) { return 'há ' + diffMin + ' min'; }
+      var diffHoras = Math.round(diffMin / 60);
+      if (diffHoras < 24) { return 'há ' + diffHoras + ' hora(s)'; }
+      var diffDias = Math.round(diffHoras / 24);
+      return 'há ' + diffDias + ' dia(s)';
+    }
+
+    // ---------- CAMPANHAS ----------
+    function preencherSeletor(idSelect, dados) {
+      var select = document.getElementById(idSelect);
+      select.innerHTML = '';
+      (dados.campanhas || []).forEach(function (nome) {
+        var opt = document.createElement('option');
+        opt.value = nome; opt.textContent = nome;
+        if (nome === dados.campanhaEscolhida) opt.selected = true;
+        select.appendChild(opt);
+      });
+    }
+
+    function renderizarCampanhas() {
+      preencherSeletor('seletorCampanhaCampanhas', DADOS_CAMPANHAS);
+      document.getElementById('rotuloCampanhaBusca').textContent = DADOS_CAMPANHAS.campanhaEscolhida ? ('- campanha: ' + DADOS_CAMPANHAS.campanhaEscolhida) : '';
+
+      document.getElementById('cardsCampanhas').innerHTML = (DADOS_CAMPANHAS.resumoPorCampanha || []).map(function (c) {
+        return '<div class="card"><h3>' + c.nome + '</h3>' +
+          '<div class="numero">' + c.percentualCobertura + '%</div>' +
+          '<div class="sub">' + c.zonasConcluidas + ' de ' + c.totalZonas + ' zonas concluídas · ' + c.pendentes + ' pendentes</div>' +
+          '<div class="barraFundo"><div class="barra" style="width:' + c.percentualCobertura + '%"></div></div></div>';
+      }).join('') || '<div class="card">Nenhuma campanha cadastrada na aba CAMPANHAS ainda.</div>';
+
+      document.querySelector('#cardPorModelo .listaConteudo').innerHTML = (DADOS_CAMPANHAS.porModelo || []).map(function (m) {
+        return '<div class="linhaLista"><span class="rotulo">' + m.modelo + '</span><span class="valor">' + m.prontas + ' prontas de ' + m.total + '</span></div>';
+      }).join('') || '<div class="linhaLista">Sem dados ainda.</div>';
+
+      var r = DADOS_CAMPANHAS.ranking || { melhores: [], piores: [] };
+      document.querySelector('#cardMelhores .listaConteudo').innerHTML = r.melhores.map(function (z) {
+        return '<div class="linhaLista"><span class="rotulo">ZE ' + z.zona + ' - ' + z.sede + '</span><span class="valor">' + ROTULOS_TIER[z.tier] + '</span></div>';
+      }).join('') || '<div class="linhaLista">Sem dados ainda.</div>';
+      document.querySelector('#cardPiores .listaConteudo').innerHTML = r.piores.map(function (z) {
+        return '<div class="linhaLista"><span class="rotulo">ZE ' + z.zona + ' - ' + z.sede + '</span><span class="valor">' + ROTULOS_TIER[z.tier] + '</span></div>';
+      }).join('') || '<div class="linhaLista">Sem dados ainda.</div>';
+
+      filtrarTabelaBusca();
+    }
+
+    function filtrarTabelaBusca() {
+      var texto = (document.getElementById('textoBusca').value || '').toUpperCase();
+      var filtroStatus = document.getElementById('filtroStatus').value;
+      var linhas = (DADOS_CAMPANHAS.listaBusca || []).filter(function (l) {
+        if (filtroStatus === 'prontas' && !l.pronta) return false;
+        if (filtroStatus === 'naoProntas' && l.pronta) return false;
+        if (!texto) return true;
+        var alvo = (l.hostname + ' ' + l.ip + ' ' + l.zona + ' ' + l.sede).toUpperCase();
+        return alvo.indexOf(texto) !== -1;
+      });
+      document.getElementById('corpoTabelaBusca').innerHTML = linhas.map(function (l) {
+        var selo = l.pronta ? '<span class="selo seloPronta">Pronta</span>' : '<span class="selo seloNaoPronta">Não pronta</span>';
+        return '<tr><td>' + l.hostname + '</td><td>' + l.ip + '</td><td>' + l.zona + '</td><td>' + l.sede + '</td><td>' + l.modelo + '</td><td>' + selo + '</td><td>' + l.quando + '</td></tr>';
+      }).join('') || '<tr><td colspan="7">Nenhuma máquina encontrada.</td></tr>';
+    }
+
+    function trocarCampanhaAba(nomeCampanha) {
+      google.script.run.withSuccessHandler(function (dados) {
+        DADOS_CAMPANHAS = dados;
+        renderizarCampanhas();
+      }).obterDadosCampanhas(nomeCampanha);
+    }
+
+    // ---------- MAPA ----------
+    function garantirMapaCarregado() {
+      if (!geojsonCarregado) {
+        geojsonCarregado = true;
+        google.script.run.withSuccessHandler(function (texto) {
+          geojsonMunicipios = JSON.parse(texto);
+          tentarIniciarMapa();
+        }).obterGeojsonMunicipios();
+      }
+      if (!DADOS_MAPA) {
+        google.script.run.withSuccessHandler(function (dados) {
+          DADOS_MAPA = dados;
+          preencherSeletor('seletorCampanhaMapa', DADOS_MAPA);
+          tentarIniciarMapa();
+        }).obterDadosMapa(DADOS_CAMPANHAS.campanhaEscolhida);
+      }
+    }
+
+    function tentarIniciarMapa() {
+      if (!geojsonMunicipios || !DADOS_MAPA) { return; }
+      if (!map) {
+        var script = document.createElement('script');
+        script.src = 'https://maps.googleapis.com/maps/api/js?key=<?= mapsApiKey ?>&callback=iniciarMapa&loading=async';
+        script.async = true; script.defer = true;
+        document.body.appendChild(script);
+      } else {
+        map.data.setStyle(estiloFeature);
+      }
+    }
+
+    function iniciarMapa() {
+      map = new google.maps.Map(document.getElementById('mapa'), {
+        center: { lat: -5.0, lng: -45.3 }, zoom: 6,
+        mapTypeControl: false, streetViewControl: false, fullscreenControl: false
+      });
+      map.data.addGeoJson(geojsonMunicipios);
+      map.data.setStyle(estiloFeature);
+
+      var infoWindow = new google.maps.InfoWindow();
+      map.data.addListener('click', function (event) {
+        var nome = event.feature.getProperty('nome') || '(sem nome)';
+        var chave = nome.toUpperCase();
+        var zonas = (DADOS_MAPA.zonasPorMunicipio && DADOS_MAPA.zonasPorMunicipio[chave]) || [];
+        var linhas = zonas.map(function (z) {
+          return 'ZE ' + z.zona + ': ' + ROTULOS_TIER[z.tier] + ' (' + z.prontas + ' pronta(s))';
+        }).join('<br>') || 'Nenhuma zona eleitoral cadastrada com esta sede.';
+        infoWindow.setContent('<b>' + nome + '</b><br>' + linhas);
+        infoWindow.setPosition(event.latLng);
+        infoWindow.open(map);
+      });
+
+      document.getElementById('carregandoMapa').style.display = 'none';
+      document.getElementById('legendaMapa').style.display = 'block';
+    }
+
+    function estiloFeature(feature) {
+      var nome = (feature.getProperty('nome') || '').toUpperCase();
+      var tier = (DADOS_MAPA.tierPorMunicipio && (nome in DADOS_MAPA.tierPorMunicipio)) ? DADOS_MAPA.tierPorMunicipio[nome] : 0;
+      return { fillColor: CORES_TIER[tier], fillOpacity: 0.7, strokeColor: '#555555', strokeWeight: 0.6 };
+    }
+
+    function trocarCampanhaMapa(nomeCampanha) {
+      google.script.run.withSuccessHandler(function (dados) {
+        DADOS_MAPA = dados;
+        if (map) { map.data.setStyle(estiloFeature); }
+      }).obterDadosMapa(nomeCampanha);
+    }
+
+    // ---------- GERENCIAR CAMPANHAS (admin) ----------
+    function opcoesSistemasHtml(selecionado) {
+      return (SISTEMAS_DISPONIVEIS || []).map(function (s) {
+        var sel = (s === selecionado) ? ' selected' : '';
+        return '<option value="' + s + '"' + sel + '>' + s + '</option>';
+      }).join('');
+    }
+
+    function linhaRequisitoNovoHtml() {
+      return '<div class="linhaRequisito">' +
+        '<select>' + opcoesSistemasHtml() + '</select>' +
+        '<input type="text" placeholder="Versão mínima (ex: 3.47)">' +
+        '<button class="botaoLink perigo" onclick="this.parentElement.remove()">remover</button>' +
+        '</div>';
+    }
+
+    function adicionarLinhaRequisitoNovo() {
+      document.getElementById('linhasRequisitoNovo').insertAdjacentHTML('beforeend', linhaRequisitoNovoHtml());
+    }
+
+    function salvarNovaCampanha() {
+      var nome = document.getElementById('nomeNovaCampanha').value;
+      var linhas = document.querySelectorAll('#linhasRequisitoNovo .linhaRequisito');
+      var requisitos = Array.prototype.map.call(linhas, function (linha) {
+        return { sistema: linha.querySelector('select').value, versaoMinima: linha.querySelector('input').value };
+      });
+      document.getElementById('erroNovaCampanha').textContent = '';
+      google.script.run.withSuccessHandler(function (lista) {
+        CAMPANHAS_ADMIN = lista;
+        renderizarAdminCampanhas();
+        document.getElementById('nomeNovaCampanha').value = '';
+        document.getElementById('linhasRequisitoNovo').innerHTML = '';
+        adicionarLinhaRequisitoNovo();
+      }).withFailureHandler(function (erro) {
+        document.getElementById('erroNovaCampanha').textContent = erro.message;
+      }).criarCampanha(nome, requisitos);
+    }
+
+    function garantirAdminCampanhasCarregado() {
+      if (!SISTEMAS_DISPONIVEIS) {
+        google.script.run.withSuccessHandler(function (lista) {
+          SISTEMAS_DISPONIVEIS = lista;
+          if (!document.querySelector('#linhasRequisitoNovo .linhaRequisito')) { adicionarLinhaRequisitoNovo(); }
+          renderizarAdminCampanhas();
+        }).obterListaSistemasDisponiveis();
+      }
+      google.script.run.withSuccessHandler(function (lista) {
+        CAMPANHAS_ADMIN = lista;
+        renderizarAdminCampanhas();
+      }).withFailureHandler(function (erro) {
+        document.getElementById('listaCampanhasAdmin').innerHTML = '<div class="avisoErro">' + erro.message + '</div>';
+      }).obterCampanhasAdmin();
+    }
+
+    function renderizarAdminCampanhas() {
+      if (!SISTEMAS_DISPONIVEIS || !CAMPANHAS_ADMIN) { return; }
+      document.getElementById('listaCampanhasAdmin').innerHTML = CAMPANHAS_ADMIN.map(function (c) {
+        var seloAtivo = c.ativo ? '<span class="selo seloAtivo">ativa</span>' : '<span class="selo seloInativo">desativada</span>';
+        var seloTv = c.padraoTv ? '<span class="selo seloTv">padrão do TV</span>' : '';
+        var botaoAtivo = c.ativo
+          ? '<button class="botaoSecundario" onclick="alternarAtivoCampanha(\'' + c.nome + '\', false)">Desativar</button>'
+          : '<button class="botaoSecundario" onclick="alternarAtivoCampanha(\'' + c.nome + '\', true)">Reativar</button>';
+        var botaoTv = c.padraoTv ? '' : '<button class="botaoSecundario" onclick="definirCampanhaPadraoTvCliente(\'' + c.nome + '\')">Definir como padrão do TV</button>';
+        var linhasRequisitos = c.requisitos.map(function (r) {
+          return '<div class="linhaRequisito" data-linha="' + r.linha + '">' +
+            '<select>' + opcoesSistemasHtml(r.sistema) + '</select>' +
+            '<input type="text" value="' + r.versaoMinima + '">' +
+            '<button class="botaoLink" onclick="salvarEdicaoRequisito(this)">salvar</button>' +
+            '<button class="botaoLink perigo" onclick="removerRequisitoCliente(this)">remover</button>' +
+            '</div>';
+        }).join('');
+        return '<div class="blocoCampanhaAdmin">' +
+          '<div class="cabecalhoCampanhaAdmin"><b>' + c.nome + '</b> ' + seloAtivo + seloTv + botaoAtivo + botaoTv + '</div>' +
+          linhasRequisitos +
+          '<div class="linhaRequisito" data-nome-campanha="' + c.nome + '">' +
+          '<select>' + opcoesSistemasHtml() + '</select>' +
+          '<input type="text" placeholder="Versão mínima">' +
+          '<button class="botaoLink" onclick="adicionarRequisitoCliente(this)">+ adicionar a esta campanha</button>' +
+          '</div>' +
+          '</div>';
+      }).join('') || '<div class="linhaLista">Nenhuma campanha cadastrada ainda.</div>';
+    }
+
+    function alternarAtivoCampanha(nome, ativo) {
+      google.script.run.withSuccessHandler(function (lista) { CAMPANHAS_ADMIN = lista; renderizarAdminCampanhas(); })
+        .withFailureHandler(function (erro) { alert(erro.message); })
+        .definirAtivoCampanha(nome, ativo);
+    }
+
+    function definirCampanhaPadraoTvCliente(nome) {
+      google.script.run.withSuccessHandler(function (lista) { CAMPANHAS_ADMIN = lista; renderizarAdminCampanhas(); })
+        .withFailureHandler(function (erro) { alert(erro.message); })
+        .definirCampanhaPadraoTv(nome);
+    }
+
+    function salvarEdicaoRequisito(botao) {
+      var linhaDiv = botao.closest('.linhaRequisito');
+      var linha = Number(linhaDiv.dataset.linha);
+      var sistema = linhaDiv.querySelector('select').value;
+      var versaoMinima = linhaDiv.querySelector('input').value;
+      google.script.run.withSuccessHandler(function (lista) { CAMPANHAS_ADMIN = lista; renderizarAdminCampanhas(); })
+        .withFailureHandler(function (erro) { alert(erro.message); })
+        .salvarRequisito(linha, sistema, versaoMinima);
+    }
+
+    function removerRequisitoCliente(botao) {
+      var linhaDiv = botao.closest('.linhaRequisito');
+      var linha = Number(linhaDiv.dataset.linha);
+      if (!confirm('Remover este sistema da campanha?')) { return; }
+      google.script.run.withSuccessHandler(function (lista) { CAMPANHAS_ADMIN = lista; renderizarAdminCampanhas(); })
+        .withFailureHandler(function (erro) { alert(erro.message); })
+        .removerRequisito(linha);
+    }
+
+    function adicionarRequisitoCliente(botao) {
+      var linhaDiv = botao.closest('.linhaRequisito');
+      var nome = linhaDiv.dataset.nomeCampanha;
+      var sistema = linhaDiv.querySelector('select').value;
+      var versaoMinima = linhaDiv.querySelector('input').value;
+      google.script.run.withSuccessHandler(function (lista) { CAMPANHAS_ADMIN = lista; renderizarAdminCampanhas(); })
+        .withFailureHandler(function (erro) { alert(erro.message); })
+        .adicionarRequisitoACampanha(nome, sistema, versaoMinima);
+    }
+
+    // ---------- ACESSO ----------
+    function garantirListaAcessoCarregada() {
+      google.script.run.withSuccessHandler(function (lista) {
+        LISTA_ACESSO = lista;
+        renderizarAcesso();
+      }).withFailureHandler(function (erro) {
+        document.getElementById('corpoTabelaAcesso').innerHTML = '<tr><td colspan="5">' + erro.message + '</td></tr>';
+      }).obterListaAcessoParaCliente();
+    }
+
+    function renderizarAcesso() {
+      document.getElementById('corpoTabelaAcesso').innerHTML = (LISTA_ACESSO || []).map(function (r) {
+        var seloAtivo = r.ativo ? '<span class="selo seloAtivo">sim</span>' : '<span class="selo seloInativo">não</span>';
+        var acao = r.ativo
+          ? '<button class="botaoLink" onclick="desativarAcessoCliente(\'' + r.email + '\')">desativar</button>'
+          : '<button class="botaoLink" onclick="reativarAcessoCliente(\'' + r.email + '\')">reativar</button>';
+        return '<tr><td>' + r.email + '</td><td>' + r.papel + '</td><td>' + seloAtivo + '</td><td>' + (r.observacao || '') + '</td><td>' + acao + '</td></tr>';
+      }).join('') || '<tr><td colspan="5">Ninguém cadastrado ainda.</td></tr>';
+    }
+
+    function salvarNovoAcesso() {
+      var email = document.getElementById('emailNovoAcesso').value;
+      var papel = document.getElementById('papelNovoAcesso').value;
+      var obs = document.getElementById('obsNovoAcesso').value;
+      if (!email) { return; }
+      google.script.run.withSuccessHandler(function (lista) {
+        LISTA_ACESSO = lista;
+        renderizarAcesso();
+        document.getElementById('emailNovoAcesso').value = '';
+        document.getElementById('obsNovoAcesso').value = '';
+      }).salvarAcesso(email, papel, obs);
+    }
+
+    function desativarAcessoCliente(email) {
+      google.script.run.withSuccessHandler(function (lista) { LISTA_ACESSO = lista; renderizarAcesso(); }).desativarAcesso(email);
+    }
+    function reativarAcessoCliente(email) {
+      google.script.run.withSuccessHandler(function (lista) { LISTA_ACESSO = lista; renderizarAcesso(); }).reativarAcesso(email);
+    }
+
+    iniciarCabecalho();
+    renderizarPainel();
+    renderizarCampanhas();
+  </script>
+</body>
+</html>

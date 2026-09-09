@@ -82,35 +82,74 @@
 # VisaoPlanilhas.psm1 e responsavel por importar VisaoGoogleAuth.psm1
 # ANTES (mesma ordem ja usada em VisaoWpfCliente.ps1).
 
-# Mesma planilha de sempre - so trocou o MEIO de leitura (Sheets API
-# autenticada em vez de export CSV publico). Nomes de aba confirmados
-# ao vivo via metadados da propria Sheets API (GET .../spreadsheets/{id}),
-# ja que "Grupos de Sistemas" so era conhecida pelo gid (numero), nao
-# pelo nome - a API v4 trabalha por NOME de aba, nao por gid.
-$script:SpreadsheetIdVisao = "1_2aZhFgplRqCdPVV_lq4XJT9wgqkfbZpEFZRu1Zu9_I"
+# Ambiente (2026-09-09) - "producao" ou "homologacao", lido de
+# $env:VISAO_AMBIENTE (setado pelo processo que abre a Visao - ver
+# Start-Visao/Start-VisaoHomolog em Visao.psm1/VisaoHomolog.psm1) ANTES
+# deste modulo ser importado. Sem a variavel (ex: rodando o .ps1 direto
+# sem passar por nenhum dos dois), cai em "producao" - mesmo
+# comportamento de sempre, nada muda pra quem nao usa Homolog.
+#
+# Decisao do usuario (2026-09-09): trocar a filosofia antiga do
+# VisaoHomolog (apontava pra planilha/Apps Script de PRODUCAO de
+# proposito, so separava o atalho/instalacao - ver comentario historico
+# em VisaoHomolog.psm1) por uma separacao de verdade, nos moldes do
+# DICON (planilha e Apps Script de escrita 100% isolados pra
+# homologacao) - so a leitura via Sheets API muda de planilha
+# (SpreadsheetIdVisao); os 3 Web Apps de escrita abaixo (Campanhas/
+# Zonas/Inventario) tem uma implantacao HOMOLOG separada, com token
+# proprio, apontando pra essa mesma planilha de homologacao.
+$script:AmbienteVisao = if ($env:VISAO_AMBIENTE -eq 'homologacao') { 'homologacao' } else { 'producao' }
+
+if ($script:AmbienteVisao -eq 'homologacao') {
+    # Planilha "Visao - Homologacao" - copia independente (Arquivo > Fazer
+    # uma copia) da planilha real, feita em 2026-09-09. Passa a divergir
+    # da producao a partir da copia - e o esperado, e a planilha de teste.
+    $script:SpreadsheetIdVisao = "1NVSQBPx8rtpPv1L9AP4o1a_11WlazjsoFF73tdcgq5M"
+    $script:UrlWebAppCampanhas = "https://script.google.com/macros/s/AKfycbwIUya5wwyS5AbhNhaXWGXZocfmNICbWvaeyPSWRIuSIoBC-FK3N9yfE7ravWoxE-bE/exec"
+    $script:TokenWebAppCampanhas = "2Gh5lufbOHvJ4kwUjP4brZeIhpKP"
+    $script:UrlWebAppZonas = "https://script.google.com/macros/s/AKfycbyK_ZZK3a_muQtrUQDqmUVy45j4Ue4d4DMRAEU2JNLjWYoUD1e8ZNaKs5qMvs5ejy2l/exec"
+    $script:TokenWebAppZonas = "bY0s9GuQ8WqzTThks6H2HNBqmmkw"
+    $script:UrlWebAppInventario = "https://script.google.com/macros/s/AKfycbxOSzEWtcrLo84UPUgjCieyosZVYNhy3FOVr40Fe2ijmwpjXymBg5SVytt0b836m6QV/exec"
+    $script:TokenWebAppInventario = "dT4KXIWiMp4GFuGWwUnlkotOXcNt"
+    # Envio de CVC ao Drive: sem chamador ativo hoje em nenhuma tela da
+    # Visao (achado 2026-09-09, grep no repo inteiro) - pertence de
+    # verdade ao ScannerRedeZona.ps1 (ferramenta irma, nao a Visao).
+    # Mantido apontando pra producao nos dois ambientes de proposito -
+    # nao ha o que isolar aqui ainda.
+    $script:UrlWebAppEnvioDrive = "https://script.google.com/macros/s/AKfycbwCNvXKg_QnpvK_kzJq_RajsZ6uNGP4q5TpjR3fH0lr4XNnSJGp-q2Ev6KSRMRMUHak/exec"
+    $script:TokenWebAppEnvioDrive = "Super@dmin2026"
+} else {
+    # Mesma planilha de sempre - so trocou o MEIO de leitura (Sheets API
+    # autenticada em vez de export CSV publico). Nomes de aba confirmados
+    # ao vivo via metadados da propria Sheets API (GET .../spreadsheets/{id}),
+    # ja que "Grupos de Sistemas" so era conhecida pelo gid (numero), nao
+    # pelo nome - a API v4 trabalha por NOME de aba, nao por gid.
+    $script:SpreadsheetIdVisao = "1_2aZhFgplRqCdPVV_lq4XJT9wgqkfbZpEFZRu1Zu9_I"
+
+    # Tokens do Apps Script (RESULTADOS-CAMPANHAS, envio de CVC ao Drive,
+    # atualizacao de Zonas) distribuidos de proposito neste modulo - decisao
+    # explicita do usuario: RESULTADOS-CAMPANHAS em 2026-08-24 (dados nao
+    # sensiveis), envio de CVC e atualizacao de Zonas em 2026-08-27 (mesmo
+    # raciocinio - nenhum dos dois e trafego de broadcast). So Wake-on-LAN
+    # (Invoke-LigarWolRemoto) CONTINUA centralizado - broadcast de verdade,
+    # ver VisaoRemoting.psm1.
+    $script:UrlWebAppCampanhas = "https://script.google.com/macros/s/AKfycbxcI7FfmnoWEjuOnO32WkaLwg-AiFxCSAXvdfiET9e29mrYvPx5QHRTIeRdU7yrGT3Z4A/exec"
+    $script:TokenWebAppCampanhas = "Super@dmin2025"
+    $script:UrlWebAppEnvioDrive = "https://script.google.com/macros/s/AKfycbwCNvXKg_QnpvK_kzJq_RajsZ6uNGP4q5TpjR3fH0lr4XNnSJGp-q2Ev6KSRMRMUHak/exec"
+    $script:TokenWebAppEnvioDrive = "Super@dmin2026"
+    $script:UrlWebAppZonas = "https://script.google.com/macros/s/AKfycbwLmvFeU4thsQlc1QDio5A5eHEOA30NzP1PtVqwvPRG3n5UqmRyBdsldZXwrlApmW_a/exec"
+    $script:TokenWebAppZonas = "Super@dmin2025"
+    # Trilha B (ecossistema Web) - Fase 1: publica o resultado de cada
+    # varredura na aba INVENTARIO, mesmo padrao/motivo dos 3 acima (dado nao
+    # sensivel, nao e broadcast).
+    $script:UrlWebAppInventario = "https://script.google.com/macros/s/AKfycbzsv2eW6q1tEOpJyDcM9i7zUTGrFP7V4S2YgqliCOqLHjMbkY69pf9bc58462fWctXnqQ/exec"
+    $script:TokenWebAppInventario = "UmQ87NhMKgbluJof9DSHn5LEsYiA"
+}
+
 $script:AbaZonas = "Zonas"
 $script:AbaGruposSistemas = "GRUPOS-SISTEMAS-ELEITORAIS"
 $script:AbaCampanhas = "CAMPANHAS"
 $script:AbaResultadosCampanhas = "RESULTADOS-CAMPANHAS"
-
-# Tokens do Apps Script (RESULTADOS-CAMPANHAS, envio de CVC ao Drive,
-# atualizacao de Zonas) distribuidos de proposito neste modulo - decisao
-# explicita do usuario: RESULTADOS-CAMPANHAS em 2026-08-24 (dados nao
-# sensiveis), envio de CVC e atualizacao de Zonas em 2026-08-27 (mesmo
-# raciocinio - nenhum dos dois e trafego de broadcast). So Wake-on-LAN
-# (Invoke-LigarWolRemoto) CONTINUA centralizado - broadcast de verdade,
-# ver VisaoRemoting.psm1.
-$script:UrlWebAppCampanhas = "https://script.google.com/macros/s/AKfycbxcI7FfmnoWEjuOnO32WkaLwg-AiFxCSAXvdfiET9e29mrYvPx5QHRTIeRdU7yrGT3Z4A/exec"
-$script:TokenWebAppCampanhas = "Super@dmin2025"
-$script:UrlWebAppEnvioDrive = "https://script.google.com/macros/s/AKfycbwCNvXKg_QnpvK_kzJq_RajsZ6uNGP4q5TpjR3fH0lr4XNnSJGp-q2Ev6KSRMRMUHak/exec"
-$script:TokenWebAppEnvioDrive = "Super@dmin2026"
-$script:UrlWebAppZonas = "https://script.google.com/macros/s/AKfycbwLmvFeU4thsQlc1QDio5A5eHEOA30NzP1PtVqwvPRG3n5UqmRyBdsldZXwrlApmW_a/exec"
-$script:TokenWebAppZonas = "Super@dmin2025"
-# Trilha B (ecossistema Web) - Fase 1: publica o resultado de cada
-# varredura na aba INVENTARIO, mesmo padrao/motivo dos 3 acima (dado nao
-# sensivel, nao e broadcast).
-$script:UrlWebAppInventario = "https://script.google.com/macros/s/AKfycbzsv2eW6q1tEOpJyDcM9i7zUTGrFP7V4S2YgqliCOqLHjMbkY69pf9bc58462fWctXnqQ/exec"
-$script:TokenWebAppInventario = "UmQ87NhMKgbluJof9DSHn5LEsYiA"
 
 $script:PastaCachePlanilhas = Join-Path $env:LOCALAPPDATA 'SuporteTI\VisaoHomolog\CachePlanilhas'
 $script:ArquivoZonasCache = Join-Path $script:PastaCachePlanilhas 'zonas_cache.csv'

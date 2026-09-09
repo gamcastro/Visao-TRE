@@ -114,6 +114,12 @@ $dicFonts = New-Object System.Windows.ResourceDictionary
 $dicFonts.Source = New-Object System.Uri("pack://application:,,,/MahApps.Metro;component/Styles/Fonts.xaml")
 $script:AppWpf.Resources.MergedDictionaries.Add($dicFonts)
 
+# Titulo da janela (2026-09-09) - mostra "HOMOLOGACAO" quando rodando
+# via Start-VisaoHomolog (mesma variavel de ambiente que troca planilha/
+# Apps Script em VisaoPlanilhas.psm1) - mesma ideia da badge amarela do
+# Visao Web, pra nunca confundir qual instalacao esta aberta na tela.
+$script:TituloJanela = if ($env:VISAO_AMBIENTE -eq 'homologacao') { "Visão - HOMOLOGAÇÃO" } else { "Visão" }
+
 # Paleta fixa (ThemeManager nao autodescobre temas via Add-Type solto -
 # ver commit 45821d0 - cores aplicadas direto por decisao com o usuario).
 $script:CorFundo = "#FF151A24"
@@ -157,7 +163,7 @@ $script:LinhasGrid = New-Object System.Collections.ObjectModel.ObservableCollect
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:Controls="clr-namespace:MahApps.Metro.Controls;assembly=MahApps.Metro"
-    Title="Visão" Width="1500" Height="880"
+    Title="$($script:TituloJanela)" Width="1500" Height="880"
     WindowStartupLocation="CenterScreen"
     Background="$($script:CorFundo)" Foreground="$($script:CorTexto)">
 

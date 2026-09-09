@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <!-- Icone do Visao (mesmo simbolo, hospedado no repo Visao-Web) - vira
+       o icone do atalho quando "Adicionar a tela inicial" no Android;
+       a aba do navegador em si e' controlada por setFaviconUrl (Code.gs,
+       doGet), nao por este link (achado inspecionando o DICON Web). -->
+  <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/gamcastro/Visao-Web/main/assets/marca/icones/visao-192.png">
+  <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/gamcastro/Visao-Web/main/assets/marca/icones/visao-192.png">
+  <style>
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body { margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; background: #f2f4f7; color: #223; }
+
+    #cabecalhoMobile { background: #14532d; color: white; padding: 14px 16px; }
+    #cabecalhoMobile .tituloLinha { display: flex; justify-content: space-between; align-items: center; }
+    #cabecalhoMobile h1 { font-size: 17px; margin: 0; font-weight: bold; }
+    .badgeAmbiente { background: #f2b705; color: #3a2e00; font-weight: bold; font-size: 10px; letter-spacing: .05em; text-transform: uppercase; padding: 2px 8px; border-radius: 6px; }
+    #botaoAtualizar { background: rgba(255,255,255,.15); border: none; color: white; width: 34px; height: 34px; border-radius: 50%; font-size: 16px; cursor: pointer; }
+
+    #faixaCampanha { padding: 10px 16px 0; background: white; }
+    #seletorCampanhaMobile { width: 100%; padding: 9px 10px; border-radius: 8px; border: 1px solid #ccd; font-size: 13px; background: white; }
+
+    #faixaEstatisticas { display: flex; background: white; padding: 14px 16px 10px; }
+    .statMobile { flex: 1; text-align: center; border-right: 1px solid #eef1f0; }
+    .statMobile:last-child { border-right: none; }
+    .statMobile b { display: block; font-size: 22px; color: #14532d; }
+    .statMobile span { font-size: 11px; color: #778; }
+
+    .barraFundoMobile { height: 6px; background: #e2e6ec; margin: 0 16px 14px; border-radius: 4px; overflow: hidden; }
+    .barraMobile { height: 100%; background: #2e7d32; }
+
+    #abasMobile { display: flex; background: white; border-bottom: 1px solid #eef1f0; position: sticky; top: 0; z-index: 5; }
+    .abaMobile { flex: 1; background: none; border: none; padding: 12px 4px; font-size: 13px; font-weight: bold; color: #889; cursor: pointer; border-bottom: 3px solid transparent; }
+    .abaMobile.ativa { color: #14532d; border-bottom-color: #14532d; }
+
+    .conteudoAbaMobile { display: none; padding: 14px 16px 28px; }
+    .conteudoAbaMobile.ativa { display: block; }
+
+    .cardFeedMobile { background: white; border-radius: 12px; padding: 14px 16px; margin-bottom: 10px; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+    .cardFeedMobile .linhaTopoFeed { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+    .cardFeedMobile .nomeFeed { font-weight: bold; font-size: 14px; color: #223; }
+    .cardFeedMobile .tempoFeed { font-size: 11px; color: #889; white-space: nowrap; }
+    .cardFeedMobile .subFeed { font-size: 12px; color: #778; margin-top: 4px; }
+
+    .seloMobile { padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: bold; white-space: nowrap; }
+    .seloProntaMobile { background: #d7f0d9; color: #1b5e20; }
+    .seloNaoProntaMobile { background: #fbe1e0; color: #b71c1c; }
+
+    #buscaMobile { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+    #buscaMobile input[type=text], #buscaMobile select { padding: 9px 12px; border-radius: 8px; border: 1px solid #ccd; font-size: 13px; }
+
+    .cardMobile { background: white; border-radius: 12px; padding: 14px 16px; margin-bottom: 12px; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+    .cardMobile h3 { margin: 0 0 8px; font-size: 13px; color: #334; }
+    .linhaMobile { display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid #f0f0f0; font-size: 13px; }
+    .linhaMobile:last-child { border-bottom: none; }
+    .linhaMobile b { color: #14532d; font-weight: bold; text-align: right; }
+
+    .avisoVazioMobile { text-align: center; color: #889; font-size: 13px; padding: 24px 0; }
+  </style>
+</head>
+<body>
+  <div id="cabecalhoMobile">
+    <div class="tituloLinha">
+      <div style="display:flex;align-items:center;gap:8px">
+        <h1>Visão Mobile</h1>
+        <span class="badgeAmbiente" id="badgeAmbiente" hidden>Homologação</span>
+      </div>
+      <button id="botaoAtualizar" onclick="location.reload()" title="Atualizar">↻</button>
+    </div>
+  </div>
+
+  <div id="faixaCampanha">
+    <select id="seletorCampanhaMobile" onchange="trocarCampanhaMobile(this.value)"></select>
+  </div>
+
+  <div id="faixaEstatisticas">
+    <div class="statMobile"><b id="statPercentual">0%</b><span>cobertura</span></div>
+    <div class="statMobile"><b id="statConcluidas">0</b><span>concluídas</span></div>
+    <div class="statMobile"><b id="statPendentes">0</b><span>pendentes</span></div>
+  </div>
+  <div class="barraFundoMobile"><div class="barraMobile" id="barraCoberturaMobile" style="width:0%"></div></div>
+
+  <div id="abasMobile">
+    <button class="abaMobile ativa" data-aba="atividade" onclick="mostrarAbaMobile('atividade')">Atividade</button>
+    <button class="abaMobile" data-aba="buscar" onclick="mostrarAbaMobile('buscar')">Buscar</button>
+    <button class="abaMobile" data-aba="painel" onclick="mostrarAbaMobile('painel')">Painel</button>
+  </div>
+
+  <!-- "Atividade" (nao "Ao vivo") de proposito - equivalente honesto ao
+       que da pra calcular hoje: ultima varredura por ZONA, nao por
+       tecnico em tempo real. Pra ser igual ao "Ao vivo" do DICON
+       precisaria de 2 coisas que o Visao ainda nao tem (dividas ja
+       registradas no plano): identidade real do tecnico no Inventario
+       (hoje so grava usuario Windows local) e um sinal de "varredura
+       COMECOU" publicado pelo Desktop (hoje so publica ao FINAL). -->
+  <div id="conteudoAbasMobile">
+    <div id="abaMobileAtividade" class="conteudoAbaMobile ativa">
+      <div id="listaAtividadeMobile"></div>
+    </div>
+
+    <div id="abaMobileBuscar" class="conteudoAbaMobile">
+      <div id="buscaMobile">
+        <input type="text" id="textoBuscaMobile" placeholder="Buscar hostname, IP, zona ou município..." oninput="filtrarBuscaMobile()">
+        <select id="filtroStatusMobile" onchange="filtrarBuscaMobile()">
+          <option value="todas">Todas as máquinas</option>
+          <option value="prontas">Só prontas</option>
+          <option value="naoProntas">Só não prontas</option>
+        </select>
+      </div>
+      <div id="listaBuscaMobile"></div>
+    </div>
+
+    <div id="abaMobilePainel" class="conteudoAbaMobile">
+      <div class="cardMobile">
+        <div class="linhaMobile"><span>Máquinas no inventário</span><b id="painelTotalMaquinas">0</b></div>
+        <div class="linhaMobile"><span>Zonas eleitorais cadastradas</span><b id="painelTotalZonas">0</b></div>
+        <div class="linhaMobile"><span>Com alguma campanha atendida</span><b id="painelComCampanha">0</b></div>
+        <div class="linhaMobile"><span>Sem nenhuma campanha atendida</span><b id="painelSemCampanha">0</b></div>
+      </div>
+      <div class="cardMobile">
+        <h3>Por Sistema (versão mais nova)</h3>
+        <div id="listaPorSistemaMobile"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    var AMBIENTE = <?!= JSON.stringify(ambiente) ?>;
+    var USUARIO_ATUAL = <?!= usuarioAtualJson ?>;
+    var DADOS_GERAIS = <?!= dadosGeraisJson ?>;
+    var DADOS_CAMPANHAS = <?!= dadosCampanhasJson ?>;
+
+    function mostrarAbaMobile(nomeAba) {
+      document.querySelectorAll('.abaMobile').forEach(function (b) { b.classList.toggle('ativa', b.dataset.aba === nomeAba); });
+      document.querySelectorAll('.conteudoAbaMobile').forEach(function (d) { d.classList.remove('ativa'); });
+      document.getElementById('abaMobile' + nomeAba.charAt(0).toUpperCase() + nomeAba.slice(1)).classList.add('ativa');
+    }
+
+    function preencherSeletorCampanhaMobile() {
+      var select = document.getElementById('seletorCampanhaMobile');
+      select.innerHTML = '';
+      (DADOS_CAMPANHAS.campanhas || []).forEach(function (nome) {
+        var opt = document.createElement('option');
+        opt.value = nome; opt.textContent = nome;
+        if (nome === DADOS_CAMPANHAS.campanhaEscolhida) opt.selected = true;
+        select.appendChild(opt);
+      });
+    }
+
+    function renderizarEstatisticasMobile() {
+      var r = (DADOS_CAMPANHAS.resumoPorCampanha || []).filter(function (c) { return c.nome === DADOS_CAMPANHAS.campanhaEscolhida; })[0]
+        || { percentualCobertura: 0, zonasConcluidas: 0, pendentes: 0 };
+      document.getElementById('statPercentual').textContent = r.percentualCobertura + '%';
+      document.getElementById('statConcluidas').textContent = r.zonasConcluidas;
+      document.getElementById('statPendentes').textContent = r.pendentes;
+      document.getElementById('barraCoberturaMobile').style.width = r.percentualCobertura + '%';
+    }
+
+    function trocarCampanhaMobile(nomeCampanha) {
+      google.script.run.withSuccessHandler(function (dados) {
+        DADOS_CAMPANHAS = dados;
+        renderizarEstatisticasMobile();
+        filtrarBuscaMobile();
+      }).obterDadosCampanhas(nomeCampanha);
+    }
+
+    function formatarTempoRelativoMobile(dataTexto) {
+      var data = new Date(dataTexto);
+      if (isNaN(data.getTime())) { return dataTexto; }
+      var diffMin = Math.round((new Date() - data) / 60000);
+      if (diffMin < 1) { return 'agora mesmo'; }
+      if (diffMin < 60) { return 'há ' + diffMin + ' min'; }
+      var diffHoras = Math.round(diffMin / 60);
+      if (diffHoras < 24) { return 'há ' + diffHoras + ' h'; }
+      return 'há ' + Math.round(diffHoras / 24) + ' d';
+    }
+
+    function renderizarAtividadeMobile() {
+      document.getElementById('listaAtividadeMobile').innerHTML = (DADOS_GERAIS.ultimaAtividadePorZona || []).map(function (a) {
+        return '<div class="cardFeedMobile"><div class="linhaTopoFeed">' +
+          '<span class="nomeFeed">ZE ' + a.zona + ' - ' + a.sede + '</span>' +
+          '<span class="tempoFeed">' + formatarTempoRelativoMobile(a.quando) + '</span></div>' +
+          '<div class="subFeed">Última varredura registrada nesta zona</div></div>';
+      }).join('') || '<div class="avisoVazioMobile">Sem varreduras registradas ainda.</div>';
+    }
+
+    function filtrarBuscaMobile() {
+      var texto = (document.getElementById('textoBuscaMobile').value || '').toUpperCase();
+      var filtro = document.getElementById('filtroStatusMobile').value;
+      var linhas = (DADOS_CAMPANHAS.listaBusca || []).filter(function (l) {
+        if (filtro === 'prontas' && !l.pronta) return false;
+        if (filtro === 'naoProntas' && l.pronta) return false;
+        if (!texto) return true;
+        var alvo = (l.hostname + ' ' + l.ip + ' ' + l.zona + ' ' + l.sede).toUpperCase();
+        return alvo.indexOf(texto) !== -1;
+      });
+      document.getElementById('listaBuscaMobile').innerHTML = linhas.map(function (l) {
+        var selo = l.pronta ? '<span class="seloMobile seloProntaMobile">Pronta</span>' : '<span class="seloMobile seloNaoProntaMobile">Não pronta</span>';
+        return '<div class="cardFeedMobile"><div class="linhaTopoFeed">' +
+          '<span class="nomeFeed">' + (l.hostname || l.ip) + '</span>' + selo + '</div>' +
+          '<div class="subFeed">' + l.ip + ' · ZE ' + l.zona + ' (' + l.sede + ') · ' + (l.modelo || '-') + '</div></div>';
+      }).join('') || '<div class="avisoVazioMobile">Nenhuma máquina encontrada.</div>';
+    }
+
+    function renderizarPainelMobile() {
+      document.getElementById('painelTotalMaquinas').textContent = DADOS_GERAIS.totalMaquinas;
+      document.getElementById('painelTotalZonas').textContent = DADOS_GERAIS.totalZonas;
+      var vg = DADOS_GERAIS.visaoGeral || { comAlgumaCampanha: 0, semNenhuma: 0 };
+      document.getElementById('painelComCampanha').textContent = vg.comAlgumaCampanha;
+      document.getElementById('painelSemCampanha').textContent = vg.semNenhuma;
+      document.getElementById('listaPorSistemaMobile').innerHTML = (DADOS_GERAIS.porSistema || []).map(function (s) {
+        var detalhe = s.versaoMaisNova ? (s.naVersaoMaisNova + ' na v' + s.versaoMaisNova) : 'nenhuma instalada';
+        return '<div class="linhaMobile"><span>' + s.sistema + '</span><b>' + s.totalInstaladas + ' · ' + detalhe + '</b></div>';
+      }).join('') || '<div class="avisoVazioMobile">Sem dados ainda.</div>';
+    }
+
+    if (AMBIENTE === 'homologacao') { document.getElementById('badgeAmbiente').hidden = false; }
+    preencherSeletorCampanhaMobile();
+    renderizarEstatisticasMobile();
+    renderizarAtividadeMobile();
+    renderizarPainelMobile();
+    filtrarBuscaMobile();
+  </script>
+</body>
+</html>
