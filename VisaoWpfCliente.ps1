@@ -618,6 +618,17 @@ $script:TimerVarredura.Add_Tick({
             }
         } catch { Add-LogWpf "[AVISO] Falha ao consultar o OCS Inventory: $($_.Exception.Message)" }
 
+        # Trilha B (ecossistema Web) - Fase 1: publica o resultado desta
+        # varredura na aba INVENTARIO, pra alimentar as futuras telas
+        # web/mobile/painel TV. Silencioso de proposito (so loga aviso,
+        # nunca interrompe o tecnico) - mesmo espirito do enriquecimento
+        # OCS acima.
+        try {
+            $sedeAtual = (Resolve-RedeDaZonaRemoto -Zona $script:Estado.ZonaAtual -Zonas $script:Estado.Zonas).Sede
+            $respInventario = Send-InventarioZonaRemoto -Zona $script:Estado.ZonaAtual -Sede $sedeAtual -Linhas @($script:LinhasGrid)
+            if (-not $respInventario.Ok) { Add-LogWpf "[AVISO] $($respInventario.Mensagem)" }
+        } catch { Add-LogWpf "[AVISO] Falha ao publicar inventário da zona: $($_.Exception.Message)" }
+
         $script:BtnIniciarVarredura.IsEnabled = $true
         $script:BtnCancelarVarredura.IsEnabled = $false
         $script:TxtZona.IsEnabled = $true

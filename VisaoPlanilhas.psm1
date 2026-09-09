@@ -106,6 +106,11 @@ $script:UrlWebAppEnvioDrive = "https://script.google.com/macros/s/AKfycbwCNvXKg_
 $script:TokenWebAppEnvioDrive = "Super@dmin2026"
 $script:UrlWebAppZonas = "https://script.google.com/macros/s/AKfycbwLmvFeU4thsQlc1QDio5A5eHEOA30NzP1PtVqwvPRG3n5UqmRyBdsldZXwrlApmW_a/exec"
 $script:TokenWebAppZonas = "Super@dmin2025"
+# Trilha B (ecossistema Web) - Fase 1: publica o resultado de cada
+# varredura na aba INVENTARIO, mesmo padrao/motivo dos 3 acima (dado nao
+# sensivel, nao e broadcast).
+$script:UrlWebAppInventario = "https://script.google.com/macros/s/AKfycbzsv2eW6q1tEOpJyDcM9i7zUTGrFP7V4S2YgqliCOqLHjMbkY69pf9bc58462fWctXnqQ/exec"
+$script:TokenWebAppInventario = "UmQ87NhMKgbluJof9DSHn5LEsYiA"
 
 $script:PastaCachePlanilhas = Join-Path $env:LOCALAPPDATA 'SuporteTI\VisaoHomolog\CachePlanilhas'
 $script:ArquivoZonasCache = Join-Path $script:PastaCachePlanilhas 'zonas_cache.csv'
@@ -546,4 +551,60 @@ function Send-ArquivoParaGoogleDriveRemoto {
     return [PSCustomObject]@{ Ok = $true; Mensagem = "Arquivo '$NomeArquivo' enviado ao Google Drive."; Url = $resp.url }
 }
 
-Export-ModuleMember -Function Get-ZonasRemoto, Get-GruposSistemasRemoto, Get-CampanhasRemoto, Get-ResultadosCampanhasRemoto, Resolve-RedeDaZonaRemoto, Test-RedeEhCompartilhadaRemoto, Send-ResultadoCampanhaZonaRemoto, Send-ArquivoParaGoogleDriveRemoto, Send-AtualizacaoZonaRemoto
+function Send-InventarioZonaRemoto {
+    <#
+        Trilha B (ecossistema Web/Mobile/Painel TV) - Fase 1: manda o
+        resultado de uma varredura inteira por HTTP POST direto ao Web
+        App do Apps Script "Publicar Inventario", que grava/atualiza
+        (upsert por Zona+IP) a aba INVENTARIO da planilha - base de dados
+        pras futuras telas web.
+
+        Chamada automatica e silenciosa ao fim de cada varredura (mesmo
+        espirito do enriquecimento OCS - quem chama decide o que fazer
+        com Ok=$false, normalmente so logar um aviso, nunca interromper
+        o tecnico). $Linhas aceita qualquer objeto com essas propriedades
+        (bate com o que ConvertTo-LinhaGridWpf/Add-LinhaGrid ja produzem -
+        IP/Hostname/Tipo/Modelo/DetectadoPor/Vnc/Rc/Sis/Instalador -
+        chamar direto com as linhas da grade, sem precisar remontar nada).
+    #>
+    param(
+        [Parameter(Mandatory)][int]$Zona,
+        [string]$Sede = "",
+        [string]$Tecnico = $env:USERNAME,
+        [Parameter(Mandatory)][object[]]$Linhas,
+        [int]$TimeoutSec = 30
+    )
+
+    $zonaPad = "{0:D3}" -f $Zona
+    $linhasCorpo = @($Linhas | ForEach-Object {
+        @{
+            ip           = $_.IP
+            hostname     = $_.Hostname
+            tipo         = $_.Tipo
+            modelo       = $_.Modelo
+            detectadoPor = $_.DetectadoPor
+            vnc          = $_.Vnc
+            rc           = $_.Rc
+            sis          = $_.Sis
+            instalador   = $_.Instalador
+        }
+    })
+    if ($linhasCorpo.Count -eq 0) {
+        return [PSCustomObject]@{ Ok = $false; Mensagem = "Nenhuma linha pra enviar." }
+    }
+
+    try {
+        $corpo = @{ token = $script:TokenWebAppInventario; zona = $zonaPad; sede = $Sede; tecnico = $Tecnico; linhas = $linhasCorpo } | ConvertTo-Json -Compress -Depth 5
+        $corpoBytesUtf8 = [System.Text.Encoding]::UTF8.GetBytes($corpo)
+        $resp = Invoke-RestMethod -Uri $script:UrlWebAppInventario -Method Post -Body $corpoBytesUtf8 -ContentType "application/json; charset=utf-8" -TimeoutSec $TimeoutSec
+    } catch {
+        return [PSCustomObject]@{ Ok = $false; Mensagem = "Falha ao publicar inventario da zona $zonaPad`: $($_.Exception.Message)" }
+    }
+
+    if (-not $resp.ok) {
+        return [PSCustomObject]@{ Ok = $false; Mensagem = "Apps Script recusou o inventario da zona $zonaPad`: $($resp.erro)" }
+    }
+    return [PSCustomObject]@{ Ok = $true; Mensagem = "Inventario da zona $zonaPad publicado ($($resp.atualizadas) atualizada(s), $($resp.novas) nova(s))." }
+}
+
+Export-ModuleMember -Function Get-ZonasRemoto, Get-GruposSistemasRemoto, Get-CampanhasRemoto, Get-ResultadosCampanhasRemoto, Resolve-RedeDaZonaRemoto, Test-RedeEhCompartilhadaRemoto, Send-ResultadoCampanhaZonaRemoto, Send-ArquivoParaGoogleDriveRemoto, Send-AtualizacaoZonaRemoto, Send-InventarioZonaRemoto

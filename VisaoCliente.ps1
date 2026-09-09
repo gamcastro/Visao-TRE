@@ -753,6 +753,36 @@ function Invoke-TickVarredura {
 
         Invoke-BuscarDesligadosOcs
 
+        # Trilha B (ecossistema Web) - Fase 1: publica o resultado desta
+        # varredura na aba INVENTARIO, pra alimentar as futuras telas
+        # web/mobile/painel TV. Silencioso de proposito (so loga aviso,
+        # nunca interrompe o tecnico) - mesmo espirito do enriquecimento
+        # OCS acima. Le direto das celulas do $grid (ja reconstruido por
+        # Invoke-BuscarDesligadosOcs) em vez de duplicar a logica de
+        # classificacao de Add-LinhaGrid - garante que o que e publicado
+        # bate exatamente com o que aparece na tela.
+        try {
+            $linhasInventario = @(
+                for ($i = 0; $i -lt $grid.Rows.Count; $i++) {
+                    $linha = $grid.Rows[$i]
+                    [PSCustomObject]@{
+                        IP           = $linha.Cells["IP"].Value
+                        Hostname     = $linha.Cells["Hostname"].Value
+                        Tipo         = $linha.Cells["Tipo"].Value
+                        Modelo       = $linha.Cells["Modelo"].Value
+                        DetectadoPor = $linha.Cells["DetectadoPor"].Value
+                        Vnc          = $linha.Cells["Vnc"].Value
+                        Rc           = $linha.Cells["Rc"].Value
+                        Sis          = $linha.Cells["Sis"].Value
+                        Instalador   = $linha.Cells["Instalador"].Value
+                    }
+                }
+            )
+            $sedeAtual = (Resolve-RedeDaZonaRemoto -Zona $script:Estado.ZonaAtual -Zonas $script:Estado.Zonas).Sede
+            $respInventario = Send-InventarioZonaRemoto -Zona $script:Estado.ZonaAtual -Sede $sedeAtual -Linhas $linhasInventario
+            if (-not $respInventario.Ok) { Add-Log "[AVISO] $($respInventario.Mensagem)" "Yellow" }
+        } catch { Add-Log "[AVISO] Falha ao publicar inventario da zona: $($_.Exception.Message)" "Yellow" }
+
         $btnIniciar.Enabled = $true
         $btnCancelar.Enabled = $false
         $numZona.Enabled = $true
