@@ -390,6 +390,15 @@ function Start-InicializacaoPosLoginWpf {
 $script:TimerInit = New-Object System.Windows.Threading.DispatcherTimer
 $script:TimerInit.Interval = [TimeSpan]::FromMilliseconds(300)
 $script:TimerInit.Add_Tick({
+  # Achado ao vivo (2026-09-08): uma excecao NAO tratada dentro de um
+  # DispatcherTimer.Tick nao fica so no tick - ela sobe pelo Dispatcher
+  # e estoura pra fora do proprio ShowDialog() (sem handler de
+  # DispatcherUnhandledException registrado), derrubando a janela
+  # inteira - o erro aparecia com o texto "ShowDialog" no meio, mas a
+  # causa de verdade era outra, escondida. Todo tick a partir de agora
+  # fica com um try/catch geral, igual ao TimerLogin ja tinha - nunca
+  # deixar uma excecao escapar de dentro de um Tick.
+  try {
     # --- Cadeia sequencial sobre a PSSession: Schema -> Versoes ---
     if ($script:Estado.InitFaseSessao -eq "Schema") {
         $st = Test-ChamadaRemotaAssincronaConcluida -EstadoAsync $script:Estado.InitAsyncSessao
@@ -468,7 +477,24 @@ $script:TimerInit.Add_Tick({
         $script:TxtStatusPrincipal.Text = "Pronto. Informe a zona e clique em Iniciar Varredura."
         $script:TimerKeepAlive.Start()
     }
-}.GetNewClosure())
+  } catch {
+    $script:TimerInit.Stop()
+    Add-LogWpf "[ERRO] Falha inesperada na inicializacao: $($_.Exception.Message)"
+    $script:TxtStatusPrincipal.Text = "Falha na inicializacao - feche e reabra a ferramenta."
+  }
+# SEM .GetNewClosure() aqui de proposito - achado ao vivo (2026-09-08):
+# GetNewClosure() congela o VALOR de toda variavel referenciada
+# (inclusive $script:) no momento em que o closure e CRIADO, nao quando
+# ele executa. Como este timer e definido ANTES de $script:TimerKeepAlive
+# mais abaixo no arquivo, o closure congelava $script:TimerKeepAlive
+# como $null pra sempre, mesmo depois dele ser criado de verdade -
+# "$script:TimerKeepAlive.Start()" quebrava com NullReference (e como
+# nenhum DispatcherTimer.Tick tem handler de excecao proprio no WPF, o
+# erro so aparecia la na frente, na chamada de ShowDialog()). Este tick
+# nao usa NENHUMA variavel de loop que precise ser congelada - so
+# variaveis locais proprias e $script:/funcoes, que resolvem certo sem
+# GetNewClosure() mesmo.
+})
 
 function ConvertTo-HashtableLocalWpf {
     <# PSCustomObject (desserializado de JSON) -> Hashtable comum. #>
