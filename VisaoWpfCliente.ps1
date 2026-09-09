@@ -122,11 +122,31 @@ $script:TituloJanela = if ($env:VISAO_AMBIENTE -eq 'homologacao') { "Visão - HO
 
 # Paleta fixa (ThemeManager nao autodescobre temas via Add-Type solto -
 # ver commit 45821d0 - cores aplicadas direto por decisao com o usuario).
-$script:CorFundo = "#FF151A24"
-$script:CorFundoCard = "#FF1E2531"
+# Achado ao vivo de novo, 2026-09-09: tentei merge direto do
+# "Styles/Themes/Dark.Green.xaml" do MahApps (pack:// URI, mesmo
+# mecanismo que ja funciona pra Controls.xaml/Fonts.xaml) esperando os
+# brushes DynamicResource (MahApps.Brushes.Accent etc) virem de graca -
+# nao vem: o ResourceDictionary carregado assim fica com 1 unica chave
+# ("Source", a propria URI), o MahApps 2.x embrulha o tema real dentro
+# de uma classe LibraryTheme que so o ThemeManager sabe abrir, e
+# ThemeManager e exatamente a parte que ja doc. acima nao funciona com
+# assembly carregada via Add-Type solto. Por isso continua cor fixa -
+# so que agora VERDE (identidade do Visao), nao mais o azul generico.
+$script:CorFundo = "#FF14201A"
+$script:CorFundoCard = "#FF1C2A22"
 $script:CorTexto = "#FFE8EAED"
-$script:CorTextoSecundario = "#FF9AA3B2"
-$script:CorAccent = "#FF3D7EFF"
+$script:CorTextoSecundario = "#FF9AB0A0"
+$script:CorAccent = "#FF2E9B4F"
+$script:CorAccentEscuro = "#FF1B5E32"
+# Paleta adicional (2026-09-09) - suite com barra lateral (mockup
+# "Visao Desktop" aprovado antes de mexer aqui) - mesmos tons do
+# mockup HTML, so traduzidos pra brush do WPF.
+$script:CorPainelLateral = "#FF17221C"
+$script:CorLinha = "#FF2A3A30"
+$script:CorPainel3 = "#FF22332A"
+$script:CorPerigo = "#FFE0645A"
+$script:CorInfo = "#FF5B8FD9"
+$script:CorAmber = "#FFE8B93E"
 
 # ============================================================
 # Estado da aplicacao (mesmo espirito do $script:Estado do WinForms)
@@ -163,66 +183,447 @@ $script:LinhasGrid = New-Object System.Collections.ObjectModel.ObservableCollect
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:Controls="clr-namespace:MahApps.Metro.Controls;assembly=MahApps.Metro"
-    Title="$($script:TituloJanela)" Width="1500" Height="880"
+    Title="$($script:TituloJanela)" Width="1500" Height="880" WindowState="Maximized"
     WindowStartupLocation="CenterScreen"
+    BorderBrush="$($script:CorAccent)" BorderThickness="1" GlowBrush="$($script:CorAccent)"
     Background="$($script:CorFundo)" Foreground="$($script:CorTexto)">
 
     <Grid>
         <Grid x:Name="PainelLogin" Visibility="Visible">
-            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Width="420">
-                <TextBlock Text="VISÃO" FontSize="48" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,0,0,4"/>
-                <TextBlock Text="TRE-MA / SEASU-COINF-STIC" FontSize="14" Foreground="$($script:CorTextoSecundario)" HorizontalAlignment="Center" Margin="0,0,0,40"/>
-                <Button x:Name="BtnEntrarGoogle" Content="Entrar com o Google" Height="42" FontSize="15"
-                        Background="$($script:CorAccent)" Foreground="White" BorderThickness="0"/>
-                <TextBlock x:Name="TxtStatusLogin" Text="" FontSize="13" Foreground="$($script:CorTextoSecundario)"
-                           HorizontalAlignment="Center" Margin="0,16,0,0" TextWrapping="Wrap" TextAlignment="Center"/>
-            </StackPanel>
+            <Border VerticalAlignment="Center" HorizontalAlignment="Center" Width="460"
+                    Background="$($script:CorFundoCard)" CornerRadius="14" Padding="40,36"
+                    BorderBrush="$($script:CorAccentEscuro)" BorderThickness="1">
+                <Border.Effect>
+                    <DropShadowEffect Color="Black" Opacity="0.45" BlurRadius="28" ShadowDepth="6"/>
+                </Border.Effect>
+                <StackPanel>
+                    <Viewbox Width="42" Height="42" HorizontalAlignment="Center" Margin="0,0,0,12">
+                        <Canvas Width="24" Height="24">
+                            <Path Data="M2,12 Q12,3 22,12 Q12,21 2,12 Z" Stroke="$($script:CorAccent)" StrokeThickness="1.7"/>
+                            <Ellipse Canvas.Left="8.8" Canvas.Top="8.8" Width="6.4" Height="6.4" Fill="$($script:CorAccent)"/>
+                        </Canvas>
+                    </Viewbox>
+                    <TextBlock Text="VISÃO" FontSize="44" FontWeight="Black" Foreground="$($script:CorAccent)" HorizontalAlignment="Center" Margin="0,0,0,4"/>
+                    <TextBlock Text="TRE-MA / SEASU-COINF-STIC" FontSize="13" Foreground="$($script:CorTextoSecundario)" HorizontalAlignment="Center" Margin="0,0,0,24"/>
+
+                    <Border x:Name="BoxAmbienteHomolog" Visibility="Collapsed" Background="#332B1F00" BorderBrush="#FFE8B93E"
+                            BorderThickness="1" CornerRadius="6" Padding="14,10" Margin="0,0,0,24">
+                        <StackPanel>
+                            <TextBlock Text="AMBIENTE DE HOMOLOGAÇÃO" FontSize="11" FontWeight="Bold" Foreground="#FFE8B93E"/>
+                            <TextBlock Text="Versão de teste. Os dados gravados aqui NÃO afetam a planilha de produção."
+                                       FontSize="12" Foreground="#FFE8B93E" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Button x:Name="BtnEntrarGoogle" Content="Entrar com o Google" Height="44" FontSize="15" FontWeight="SemiBold"
+                            Background="$($script:CorAccent)" Foreground="White" BorderThickness="0"/>
+                    <TextBlock x:Name="TxtStatusLogin" Text="" FontSize="13" Foreground="$($script:CorTextoSecundario)"
+                               HorizontalAlignment="Center" Margin="0,16,0,0" TextWrapping="Wrap" TextAlignment="Center"/>
+                </StackPanel>
+            </Border>
         </Grid>
 
-        <Grid x:Name="PainelPrincipal" Visibility="Collapsed" Margin="20">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="*"/>
-                <RowDefinition Height="140"/>
-            </Grid.RowDefinitions>
+        <!-- ============================================================
+             PainelApp (2026-09-09) - suite com barra lateral, mockup
+             aprovado antes de mexer aqui (artifact separado). A tela de
+             varredura de sempre virou "PaginaRede" AQUI DENTRO, sem
+             nenhuma mudanca de logica/nomes internos - so mudou o
+             container. As demais paginas (Campanhas/Remoto/Pacotes/
+             Usuarios/Admin/Busca360/Chamados/Kb/Atendimentos) sao MOCK
+             puro, com os MESMOS dados do artifact - "num segundo
+             momento" decidimos juntos o que vira funcional de verdade.
+             ============================================================ -->
+        <Grid x:Name="PainelApp" Visibility="Collapsed">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="250"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
 
-            <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,6">
-                <TextBlock Text="Número da Zona:" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                <TextBox x:Name="TxtZona" Width="60" VerticalAlignment="Center"/>
-                <Button x:Name="BtnIniciarVarredura" Content="Iniciar Varredura" Width="160" Height="32" Margin="20,0,0,0"
-                        Background="$($script:CorAccent)" Foreground="White" BorderThickness="0"/>
-                <Button x:Name="BtnCancelarVarredura" Content="Cancelar" Width="100" Height="32" Margin="10,0,0,0" IsEnabled="False"/>
-            </StackPanel>
+            <!-- ================= BARRA LATERAL ================= -->
+            <Border Grid.Column="0" Background="$($script:CorPainelLateral)" BorderBrush="$($script:CorLinha)" BorderThickness="0,0,1,0">
+                <Grid Margin="14,18,14,14">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
 
-            <TextBlock x:Name="TxtInfoZona" Grid.Row="1" Text="" FontStyle="Italic" Foreground="$($script:CorTextoSecundario)" Margin="0,0,0,4"/>
-            <TextBlock x:Name="TxtStatusPrincipal" Grid.Row="2" Text="Pronto. Informe a zona e clique em Iniciar Varredura." Margin="0,0,0,10"/>
+                    <StackPanel Grid.Row="0" Margin="0,0,0,14">
+                        <StackPanel Orientation="Horizontal">
+                            <Viewbox Width="22" Height="22" Margin="0,0,8,0">
+                                <Canvas Width="24" Height="24">
+                                    <Path Data="M2,12 Q12,3 22,12 Q12,21 2,12 Z" Stroke="$($script:CorAccent)" StrokeThickness="1.8"/>
+                                    <Ellipse Canvas.Left="8.8" Canvas.Top="8.8" Width="6.4" Height="6.4" Fill="$($script:CorAccent)"/>
+                                </Canvas>
+                            </Viewbox>
+                            <TextBlock Text="VISÃO" FontSize="19" FontWeight="Bold" VerticalAlignment="Center"/>
+                        </StackPanel>
+                        <TextBlock Text="TRE-MA / SEASU-COINF-STIC" FontSize="10.5" Foreground="$($script:CorTextoSecundario)" Margin="30,3,0,0"/>
+                        <Border x:Name="SeloHomologSidebar" Visibility="Collapsed" Background="$($script:CorAmber)" CornerRadius="5"
+                                Padding="7,2" Margin="30,8,0,0" HorizontalAlignment="Left">
+                            <TextBlock Text="HOMOLOGAÇÃO" FontSize="9.5" FontWeight="Bold" Foreground="#FF3A2E00"/>
+                        </Border>
+                    </StackPanel>
 
-            <ProgressBar x:Name="BarraProgresso" Grid.Row="3" Height="8" Margin="0,0,0,12" Minimum="0" Maximum="100"/>
+                    <Border Grid.Row="1" Background="$($script:CorFundoCard)" CornerRadius="8" Padding="10,9" Margin="0,0,0,16">
+                        <StackPanel>
+                            <TextBlock Text="TÉCNICO" FontSize="9" FontWeight="Bold" Foreground="$($script:CorTextoSecundario)"/>
+                            <TextBlock x:Name="TxtNomeUsuarioSidebar" Text="—" FontWeight="Bold" FontSize="12.5" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                            <WrapPanel Margin="0,7,0,0">
+                                <Border Background="#292E9B4F" CornerRadius="5" Padding="7,2" Margin="0,0,6,0">
+                                    <TextBlock x:Name="TxtPerfilSidebar" Text="Administrador" FontSize="9.5" FontWeight="Bold" Foreground="$($script:CorAccent)"/>
+                                </Border>
+                                <Border Background="$($script:CorPainel3)" CornerRadius="5" Padding="7,2">
+                                    <TextBlock x:Name="TxtGrupoSidebar" Text="SEASU" FontSize="9.5" FontWeight="Bold" Foreground="$($script:CorTextoSecundario)"/>
+                                </Border>
+                            </WrapPanel>
+                        </StackPanel>
+                    </Border>
 
-            <DataGrid x:Name="GridResultados" Grid.Row="4" AutoGenerateColumns="False" IsReadOnly="True"
-                      Background="$($script:CorFundoCard)" Foreground="$($script:CorTexto)"
-                      RowBackground="$($script:CorFundoCard)" BorderThickness="0" GridLinesVisibility="Horizontal"
-                      HeadersVisibility="Column" CanUserAddRows="False" SelectionMode="Single" SelectionUnit="FullRow">
-                <DataGrid.Columns>
-                    <DataGridTextColumn Header="IP" Binding="{Binding IP}" Width="115"/>
-                    <DataGridTextColumn Header="Tipo" Binding="{Binding Tipo}" Width="150"/>
-                    <DataGridTextColumn Header="Hostname" Binding="{Binding Hostname}" Width="220"/>
-                    <DataGridTextColumn Header="Modelo" Binding="{Binding Modelo}" Width="160"/>
-                    <DataGridTextColumn Header="Tempo (ms)" Binding="{Binding Tempo}" Width="80"/>
-                    <DataGridTextColumn Header="Detectado Por" Binding="{Binding DetectadoPor}" Width="220"/>
-                    <DataGridTextColumn Header="VNC" Binding="{Binding Vnc}" Width="90"/>
-                    <DataGridTextColumn Header="RC Ivanti" Binding="{Binding Rc}" Width="90"/>
-                    <DataGridTextColumn Header="SIS" Binding="{Binding Sis}" Width="70"/>
-                    <DataGridTextColumn Header="Instalador" Binding="{Binding Instalador}" Width="100"/>
-                </DataGrid.Columns>
-            </DataGrid>
+                    <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
+                        <StackPanel>
+                            <TextBlock Text="INÍCIO" FontSize="10" FontWeight="Bold" Foreground="$($script:CorTextoSecundario)" Margin="8,4,0,6"/>
+                            <Button x:Name="NavInicio" Content="Início" HorizontalContentAlignment="Left" Padding="10,8" Margin="0,0,0,2"
+                                    Background="$($script:CorAccent)" Foreground="$($script:CorFundo)" BorderThickness="0" FontWeight="Bold"/>
 
-            <TextBox x:Name="TxtLog" Grid.Row="5" Margin="0,12,0,0" IsReadOnly="True" TextWrapping="Wrap"
-                     VerticalScrollBarVisibility="Auto" Background="Black" Foreground="#FF7FE07F"
-                     FontFamily="Consolas" FontSize="12"/>
+                            <TextBlock Text="FERRAMENTAS ATUAIS" FontSize="10" FontWeight="Bold" Foreground="$($script:CorTextoSecundario)" Margin="8,14,0,6"/>
+                            <Button x:Name="NavRede" Content="Diagnóstico de Rede" HorizontalContentAlignment="Left" Padding="10,8" Margin="0,0,0,2" Background="Transparent" Foreground="$($script:CorTextoSecundario)" BorderThickness="0"/>
+                            <Button x:Name="NavCampanhas" Content="Campanhas" HorizontalContentAlignment="Left" Padding="10,8" Margin="0,0,0,2" Background="Transparent" Foreground="$($script:CorTextoSecundario)" BorderThickness="0"/>
+                            <Button x:Name="NavRemoto" Content="Ações Remotas" HorizontalContentAlignment="Left" Padding="10,8" Margin="0,0,0,2" Background="Transparent" Foreground="$($script:CorTextoSecundario)" BorderThickness="0"/>
+                            <Button x:Name="NavPacotes" Content="Pacotes" HorizontalContentAlignment="Left" Padding="10,8" Margin="0,0,0,2" Background="Transparent" Foreground="$($script:CorTextoSecundario)" BorderThickness="0"/>
+                            <Button x:Name="NavUsuarios" Content="Usuários e Acessos" HorizontalContentAlignment="Left" Padding="10,8" Margin="0,0,0,2" Background="Transparent" Foreground="$($script:CorTextoSecundario)" BorderThickness="0"/>
+                            <Button x:Name="NavAdmin" Content="Administração" HorizontalContentAlignment="Left" Padding="10,8" Margin="0,0,0,2" Background="Transparent" Foreground="$($script:CorTextoSecundario)" BorderThickness="0"/>
+
+                            <TextBlock Text="SERVICE DESK (PROPOSTO)" FontSize="10" FontWeight="Bold" Foreground="$($script:CorTextoSecundario)" Margin="8,14,0,6"/>
+                            <Button x:Name="NavBusca360" Content="Busca 360°" HorizontalContentAlignment="Left" Padding="10,8" Margin="0,0,0,2" Background="Transparent" Foreground="$($script:CorTextoSecundario)" BorderThickness="0"/>
+                            <Button x:Name="NavChamados" Content="Chamados" HorizontalContentAlignment="Left" Padding="10,8" Margin="0,0,0,2" Background="Transparent" Foreground="$($script:CorTextoSecundario)" BorderThickness="0"/>
+                            <Button x:Name="NavKb" Content="Base de Conhecimento" HorizontalContentAlignment="Left" Padding="10,8" Margin="0,0,0,2" Background="Transparent" Foreground="$($script:CorTextoSecundario)" BorderThickness="0"/>
+                            <Button x:Name="NavAtendimentos" Content="Meus Atendimentos" HorizontalContentAlignment="Left" Padding="10,8" Margin="0,0,0,2" Background="Transparent" Foreground="$($script:CorTextoSecundario)" BorderThickness="0"/>
+                        </StackPanel>
+                    </ScrollViewer>
+
+                    <StackPanel Grid.Row="3" Margin="0,14,0,0">
+                        <Border Height="1" Background="$($script:CorLinha)" Margin="0,0,0,10"/>
+                        <Button x:Name="BtnAtualizarDadosSidebar" Content="↻ Atualizar dados" HorizontalContentAlignment="Left" Padding="8,6"
+                                Background="Transparent" Foreground="$($script:CorTextoSecundario)" BorderThickness="0"/>
+                        <Button x:Name="BtnAjudaSidebar" Content="？ Ajuda" HorizontalContentAlignment="Left" Padding="8,6"
+                                Background="Transparent" Foreground="$($script:CorTextoSecundario)" BorderThickness="0"/>
+                        <TextBlock Text="Visão v1.0.0 (WPF)" FontFamily="Consolas" FontSize="10" Foreground="$($script:CorTextoSecundario)" Margin="8,6,0,0"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- ================= CONTEÚDO ================= -->
+            <Grid Grid.Column="1" Margin="30,26,30,26">
+
+                <!-- ==== INÍCIO ==== -->
+                <ScrollViewer x:Name="PaginaInicio" Visibility="Visible" VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        <TextBlock Text="Olá, George" FontSize="22" FontWeight="Bold" Margin="0,0,0,4"/>
+                        <TextBlock Margin="0,0,0,22" Foreground="$($script:CorTextoSecundario)">
+                            <Run Text="Perfil "/><Run Text="Administrador" FontWeight="Bold" Foreground="$($script:CorTexto)"/>
+                            <Run Text="   |   Grupo "/><Run Text="SEASU" FontWeight="Bold" Foreground="$($script:CorTexto)"/>
+                        </TextBlock>
+
+                        <UniformGrid Columns="4" Margin="0,0,0,22">
+                            <Border Background="$($script:CorFundoCard)" CornerRadius="8" Padding="18,14" Margin="0,0,8,0">
+                                <StackPanel><TextBlock Text="4" FontSize="26" FontWeight="Bold" Foreground="$($script:CorAccent)"/><TextBlock Text="Chamados fechados por mim" FontSize="12" Foreground="$($script:CorTextoSecundario)" Margin="0,3,0,0" TextWrapping="Wrap"/></StackPanel>
+                            </Border>
+                            <Border Background="$($script:CorFundoCard)" CornerRadius="8" Padding="18,14" Margin="4,0,4,0">
+                                <StackPanel><TextBlock Text="18 min" FontSize="26" FontWeight="Bold"/><TextBlock Text="Tempo médio de atendimento (geral)" FontSize="12" Foreground="$($script:CorTextoSecundario)" Margin="0,3,0,0" TextWrapping="Wrap"/></StackPanel>
+                            </Border>
+                            <Border Background="$($script:CorFundoCard)" CornerRadius="8" Padding="18,14" Margin="4,0,4,0">
+                                <StackPanel><TextBlock Text="3" FontSize="26" FontWeight="Bold" Foreground="$($script:CorPerigo)"/><TextBlock Text="Chamados em aberto (mock)" FontSize="12" Foreground="$($script:CorTextoSecundario)" Margin="0,3,0,0" TextWrapping="Wrap"/></StackPanel>
+                            </Border>
+                            <Border Background="$($script:CorFundoCard)" CornerRadius="8" Padding="18,14" Margin="8,0,0,0">
+                                <StackPanel><TextBlock Text="105" FontSize="26" FontWeight="Bold"/><TextBlock Text="Zonas cadastradas" FontSize="12" Foreground="$($script:CorTextoSecundario)" Margin="0,3,0,0"/></StackPanel>
+                            </Border>
+                        </UniformGrid>
+
+                        <WrapPanel Margin="0,0,0,22">
+                            <Button x:Name="AtalhoIniciarVarredura" Content="Iniciar varredura" Padding="16,10" Margin="0,0,10,0" Background="$($script:CorAccent)" Foreground="$($script:CorFundo)" FontWeight="Bold" BorderThickness="0"/>
+                            <Button x:Name="AtalhoBusca360" Content="Buscar máquina/usuário" Padding="16,10" Margin="0,0,10,0" Background="$($script:CorFundoCard)" Foreground="$($script:CorTexto)" BorderThickness="0"/>
+                            <Button x:Name="AtalhoChamados" Content="Ver chamados" Padding="16,10" Margin="0,0,10,0" Background="$($script:CorFundoCard)" Foreground="$($script:CorTexto)" BorderThickness="0"/>
+                            <Button x:Name="AtalhoCampanhas" Content="Status da campanha" Padding="16,10" Background="$($script:CorFundoCard)" Foreground="$($script:CorTexto)" BorderThickness="0"/>
+                        </WrapPanel>
+
+                        <Border Background="$($script:CorFundoCard)" CornerRadius="8" Padding="18,16">
+                            <StackPanel>
+                                <TextBlock Text="Atividade recente" FontWeight="Bold" FontSize="13.5" Margin="0,0,0,10"/>
+                                <Grid Margin="0,0,0,8"><TextBlock Text="ZE 015 (Grajaú) — varredura concluída · 47 host/PC identificados"/><TextBlock Text="há 16 h" HorizontalAlignment="Right" Foreground="$($script:CorTextoSecundario)" FontFamily="Consolas" FontSize="11.5"/></Grid>
+                                <Grid Margin="0,0,0,8"><TextBlock Text="Pacote GEDAI-UE 6.27 copiado · ZMA07-DESK-14"/><TextBlock Text="há 1 d" HorizontalAlignment="Right" Foreground="$($script:CorTextoSecundario)" FontFamily="Consolas" FontSize="11.5"/></Grid>
+                                <Grid Margin="0,0,0,8"><TextBlock Text="Conta de usuário desbloqueada · j.pereira"/><TextBlock Text="há 1 d" HorizontalAlignment="Right" Foreground="$($script:CorTextoSecundario)" FontFamily="Consolas" FontSize="11.5"/></Grid>
+                                <Grid><TextBlock Text="Chamado #4821 respondido (mock)"/><TextBlock Text="há 2 d" HorizontalAlignment="Right" Foreground="$($script:CorTextoSecundario)" FontFamily="Consolas" FontSize="11.5"/></Grid>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- ==== DIAGNÓSTICO DE REDE (real - mesma logica de sempre) ==== -->
+                <Grid x:Name="PaginaRede" Visibility="Collapsed">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="140"/>
+                    </Grid.RowDefinitions>
+
+                    <Grid Grid.Row="0" Margin="0,0,0,14">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Border Grid.Column="0" Background="$($script:CorFundoCard)" CornerRadius="8" Padding="18,14" Margin="0,0,8,0">
+                            <StackPanel>
+                                <TextBlock x:Name="TxtCardZona" Text="—" FontSize="28" FontWeight="Bold" Foreground="$($script:CorAccent)"/>
+                                <TextBlock Text="Zona atual" FontSize="12" Foreground="$($script:CorTextoSecundario)" Margin="0,3,0,0"/>
+                            </StackPanel>
+                        </Border>
+                        <Border Grid.Column="1" Background="$($script:CorFundoCard)" CornerRadius="8" Padding="18,14" Margin="4,0,4,0">
+                            <StackPanel>
+                                <TextBlock x:Name="TxtCardTotal" Text="0" FontSize="28" FontWeight="Bold" Foreground="$($script:CorTexto)"/>
+                                <TextBlock Text="Máquinas encontradas" FontSize="12" Foreground="$($script:CorTextoSecundario)" Margin="0,3,0,0"/>
+                            </StackPanel>
+                        </Border>
+                        <Border Grid.Column="2" Background="$($script:CorFundoCard)" CornerRadius="8" Padding="18,14" Margin="4,0,4,0">
+                            <StackPanel>
+                                <TextBlock x:Name="TxtCardHostPc" Text="0" FontSize="28" FontWeight="Bold" Foreground="$($script:CorTexto)"/>
+                                <TextBlock Text="Host/PC identificados" FontSize="12" Foreground="$($script:CorTextoSecundario)" Margin="0,3,0,0"/>
+                            </StackPanel>
+                        </Border>
+                        <Border Grid.Column="3" Background="$($script:CorFundoCard)" CornerRadius="8" Padding="18,14" Margin="8,0,0,0">
+                            <StackPanel>
+                                <TextBlock x:Name="TxtCardBloqueado" Text="0" FontSize="28" FontWeight="Bold" Foreground="$($script:CorPerigo)"/>
+                                <TextBlock Text="Instalador bloqueado" FontSize="12" Foreground="$($script:CorTextoSecundario)" Margin="0,3,0,0"/>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+
+                    <Border Grid.Row="1" Background="$($script:CorFundoCard)" CornerRadius="8" Padding="16,12" Margin="0,0,0,14">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="Número da Zona:" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                            <TextBox x:Name="TxtZona" Width="60" VerticalAlignment="Center"/>
+                            <Button x:Name="BtnIniciarVarredura" Content="Iniciar Varredura" Width="160" Height="34" Margin="20,0,0,0"
+                                    Background="$($script:CorAccent)" Foreground="White" BorderThickness="0" FontWeight="SemiBold"/>
+                            <Button x:Name="BtnCancelarVarredura" Content="Cancelar" Width="100" Height="34" Margin="10,0,0,0" IsEnabled="False"/>
+                        </StackPanel>
+                    </Border>
+
+                    <TextBlock x:Name="TxtInfoZona" Grid.Row="2" Text="" FontStyle="Italic" Foreground="$($script:CorTextoSecundario)" Margin="0,0,0,4"/>
+                    <TextBlock x:Name="TxtStatusPrincipal" Grid.Row="3" Text="Pronto. Informe a zona e clique em Iniciar Varredura." Margin="0,0,0,10"/>
+
+                    <ProgressBar x:Name="BarraProgresso" Grid.Row="4" Height="8" Margin="0,0,0,12" Minimum="0" Maximum="100" Foreground="$($script:CorAccent)"/>
+
+                    <DataGrid x:Name="GridResultados" Grid.Row="5" AutoGenerateColumns="False" IsReadOnly="True"
+                              Background="$($script:CorFundoCard)" Foreground="$($script:CorTexto)"
+                              RowBackground="$($script:CorFundoCard)" BorderThickness="0" GridLinesVisibility="Horizontal"
+                              HorizontalGridLinesBrush="$($script:CorFundo)"
+                              HeadersVisibility="Column" CanUserAddRows="False" SelectionMode="Single" SelectionUnit="FullRow">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="IP" Binding="{Binding IP}" Width="115"/>
+                            <DataGridTextColumn Header="Tipo" Binding="{Binding Tipo}" Width="150"/>
+                            <DataGridTextColumn Header="Hostname" Binding="{Binding Hostname}" Width="220"/>
+                            <DataGridTextColumn Header="Modelo" Binding="{Binding Modelo}" Width="160"/>
+                            <DataGridTextColumn Header="Tempo (ms)" Binding="{Binding Tempo}" Width="80"/>
+                            <DataGridTextColumn Header="Detectado Por" Binding="{Binding DetectadoPor}" Width="220"/>
+                            <DataGridTextColumn Header="VNC" Binding="{Binding Vnc}" Width="90"/>
+                            <DataGridTextColumn Header="RC Ivanti" Binding="{Binding Rc}" Width="90"/>
+                            <DataGridTextColumn Header="SIS" Binding="{Binding Sis}" Width="70"/>
+                            <DataGridTextColumn Header="Instalador" Binding="{Binding Instalador}" Width="100"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+
+                    <TextBox x:Name="TxtLog" Grid.Row="6" Margin="0,12,0,0" IsReadOnly="True" TextWrapping="Wrap"
+                             VerticalScrollBarVisibility="Auto" Background="Black" Foreground="#FF7FE07F"
+                             FontFamily="Consolas" FontSize="12"/>
+                </Grid>
+
+                <!-- ==== CAMPANHAS (mock) ==== -->
+                <ScrollViewer x:Name="PaginaCampanhas" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        <TextBlock Text="Campanhas" FontSize="22" FontWeight="Bold" Margin="0,0,0,4"/>
+                        <TextBlock Text="Verificação de campanha por zona - mesma logica ja usada na janela &quot;Verificar Campanha&quot;." Foreground="$($script:CorTextoSecundario)" Margin="0,0,0,22" TextWrapping="Wrap"/>
+                        <Border Background="$($script:CorFundoCard)" CornerRadius="8" Padding="18,16">
+                            <StackPanel>
+                                <TextBlock Text="GRUPO-SIS-3.47 — 22% concluído" FontWeight="Bold" FontSize="13.5" Margin="0,0,0,10"/>
+                                <Grid Margin="0,0,0,8"><TextBlock Text="ZE 015 — Grajaú"/><Border HorizontalAlignment="Right" Background="#293FB863" CornerRadius="10" Padding="9,2"><TextBlock Text="Concluída" FontSize="11" FontWeight="Bold" Foreground="$($script:CorAccent)"/></Border></Grid>
+                                <Grid Margin="0,0,0,8"><TextBlock Text="ZE 021 — Barão de Grajaú"/><Border HorizontalAlignment="Right" Background="#29E8B93E" CornerRadius="10" Padding="9,2"><TextBlock Text="Parcial (1 pronta)" FontSize="11" FontWeight="Bold" Foreground="$($script:CorAmber)"/></Border></Grid>
+                                <Grid><TextBlock Text="ZE 044 — Balsas"/><Border HorizontalAlignment="Right" Background="#29E0645A" CornerRadius="10" Padding="9,2"><TextBlock Text="Não instalado" FontSize="11" FontWeight="Bold" Foreground="$($script:CorPerigo)"/></Border></Grid>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- ==== AÇÕES REMOTAS (mock) ==== -->
+                <ScrollViewer x:Name="PaginaRemoto" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        <TextBlock Text="Ações Remotas" FontSize="22" FontWeight="Bold" Margin="0,0,0,4"/>
+                        <TextBlock Text="O que já existe hoje (menu de contexto na grade), reunido num painel próprio." Foreground="$($script:CorTextoSecundario)" Margin="0,0,0,18" TextWrapping="Wrap"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,18">
+                            <TextBox Width="300" Margin="0,0,10,0" Text="" Tag="IP ou hostname da máquina..."/>
+                            <Button Content="Localizar" Padding="16,8" Background="$($script:CorAccent)" Foreground="$($script:CorFundo)" FontWeight="Bold" BorderThickness="0"/>
+                        </StackPanel>
+                        <Border Background="$($script:CorFundoCard)" CornerRadius="8" Padding="14,12" Margin="0,0,0,8"><Grid><StackPanel><TextBlock Text="Abrir sessão VNC" FontWeight="Bold" FontSize="13.5"/><TextBlock Text="Porta 5900 - abre o VNC Viewer já apontado pro IP" FontSize="12" Foreground="$($script:CorTextoSecundario)"/></StackPanel><Button Content="Conectar" HorizontalAlignment="Right" Padding="14,6" IsEnabled="False"/></Grid></Border>
+                        <Border Background="$($script:CorFundoCard)" CornerRadius="8" Padding="14,12" Margin="0,0,0,8"><Grid><StackPanel><TextBlock Text="Abrir RC Ivanti" FontWeight="Bold" FontSize="13.5"/><TextBlock Text="Porta 9535 - controle remoto via Ivanti" FontSize="12" Foreground="$($script:CorTextoSecundario)"/></StackPanel><Button Content="Conectar" HorizontalAlignment="Right" Padding="14,6" IsEnabled="False"/></Grid></Border>
+                        <Border Background="$($script:CorFundoCard)" CornerRadius="8" Padding="14,12" Margin="0,0,0,8"><Grid><StackPanel><TextBlock Text="Ping contínuo" FontWeight="Bold" FontSize="13.5"/><TextBlock Text="Diagnóstico rápido de conectividade com a máquina" FontSize="12" Foreground="$($script:CorTextoSecundario)"/></StackPanel><Button Content="Iniciar" HorizontalAlignment="Right" Padding="14,6" IsEnabled="False"/></Grid></Border>
+                        <Border Background="$($script:CorFundoCard)" CornerRadius="8" Padding="14,12" Margin="0,0,0,8"><Grid><StackPanel><TextBlock Text="Wake-on-LAN" FontWeight="Bold" FontSize="13.5"/><TextBlock Text="Ligar a máquina remotamente" FontSize="12" Foreground="$($script:CorTextoSecundario)"/></StackPanel><Button Content="Enviar" HorizontalAlignment="Right" Padding="14,6" IsEnabled="False"/></Grid></Border>
+                        <Border Background="$($script:CorFundoCard)" CornerRadius="8" Padding="14,12" Margin="0,0,0,8"><Grid><StackPanel><TextBlock Text="Consultar senha local (LAPS)" FontWeight="Bold" FontSize="13.5"/><TextBlock Text="Abre a ferramenta de senha do administrador local" FontSize="12" Foreground="$($script:CorTextoSecundario)"/></StackPanel><Button Content="Consultar" HorizontalAlignment="Right" Padding="14,6" IsEnabled="False"/></Grid></Border>
+                        <Border Background="$($script:CorFundoCard)" CornerRadius="8" Padding="14,12" Margin="0,0,0,8"><Grid><StackPanel><TextBlock Text="Diagnóstico de impressora" FontWeight="Bold" FontSize="13.5"/><TextBlock Text="Nível de toner e status, via SNMP (Pantum)" FontSize="12" Foreground="$($script:CorTextoSecundario)"/></StackPanel><Button Content="Consultar" HorizontalAlignment="Right" Padding="14,6" IsEnabled="False"/></Grid></Border>
+                        <Border Background="$($script:CorFundoCard)" CornerRadius="8" Padding="14,12"><Grid><StackPanel><TextBlock Text="Excluir do OCS Inventory" FontWeight="Bold" FontSize="13.5"/><TextBlock Text="Remove o registro da máquina no inventário corporativo" FontSize="12" Foreground="$($script:CorTextoSecundario)"/></StackPanel><Button Content="Excluir" HorizontalAlignment="Right" Padding="14,6" IsEnabled="False"/></Grid></Border>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- ==== PACOTES (mock) ==== -->
+                <ScrollViewer x:Name="PaginaPacotes" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        <TextBlock Text="Pacotes" FontSize="22" FontWeight="Bold" Margin="0,0,0,4"/>
+                        <TextBlock Text="Distribuição dos instaladores dos Sistemas Eleitorais - copia da rede pro cache local (Robocopy) e confere o hash." Foreground="$($script:CorTextoSecundario)" Margin="0,0,0,18" TextWrapping="Wrap"/>
+                        <Border Background="$($script:CorFundoCard)" CornerRadius="8" Padding="14,12" Margin="0,0,0,8"><Grid><StackPanel><TextBlock Text="GEDAI-UE 6.27" FontWeight="Bold" FontSize="13.5"/><TextBlock Text="Hash conferido · copiado em ZMA015-DESK-02" FontSize="11.5" FontFamily="Consolas" Foreground="$($script:CorTextoSecundario)"/></StackPanel><Border HorizontalAlignment="Right" VerticalAlignment="Center" Background="#293FB863" CornerRadius="10" Padding="9,3"><TextBlock Text="Pronto p/ instalar" FontSize="11" FontWeight="Bold" Foreground="$($script:CorAccent)"/></Border></Grid></Border>
+                        <Border Background="$($script:CorFundoCard)" CornerRadius="8" Padding="14,12" Margin="0,0,0,8"><Grid><StackPanel><TextBlock Text="Criptosis 1.04" FontWeight="Bold" FontSize="13.5"/><TextBlock Text="Copiando... 62%" FontSize="11.5" FontFamily="Consolas" Foreground="$($script:CorTextoSecundario)"/></StackPanel><Border HorizontalAlignment="Right" VerticalAlignment="Center" Background="#29E8B93E" CornerRadius="10" Padding="9,3"><TextBlock Text="Copiando" FontSize="11" FontWeight="Bold" Foreground="$($script:CorAmber)"/></Border></Grid></Border>
+                        <Border Background="$($script:CorFundoCard)" CornerRadius="8" Padding="14,12" Margin="0,0,0,18"><Grid><StackPanel><TextBlock Text="Certificado P12 1.21" FontWeight="Bold" FontSize="13.5"/><TextBlock Text="Hash não confere - pacote de origem pode estar corrompido" FontSize="11.5" FontFamily="Consolas" Foreground="$($script:CorTextoSecundario)" TextWrapping="Wrap"/></StackPanel><Border HorizontalAlignment="Right" VerticalAlignment="Center" Background="#29E0645A" CornerRadius="10" Padding="9,3"><TextBlock Text="Falhou" FontSize="11" FontWeight="Bold" Foreground="$($script:CorPerigo)"/></Border></Grid></Border>
+                        <WrapPanel>
+                            <Button Content="Verificar hash" Padding="14,7" Margin="0,0,10,0" IsEnabled="False"/>
+                            <Button Content="Abrir pasta do pacote" Padding="14,7" IsEnabled="False"/>
+                        </WrapPanel>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- ==== USUÁRIOS E ACESSOS (mock) ==== -->
+                <ScrollViewer x:Name="PaginaUsuarios" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        <TextBlock Text="Usuários e Acessos" FontSize="22" FontWeight="Bold" Margin="0,0,0,4"/>
+                        <TextBlock Text="Busca de usuário/computador já existente, reorganizada como painel próprio." Foreground="$($script:CorTextoSecundario)" Margin="0,0,0,18" TextWrapping="Wrap"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,18">
+                            <TextBox Width="300" Margin="0,0,10,0" Text="j.pereira"/>
+                            <Button Content="Buscar" Padding="16,8" Background="$($script:CorAccent)" Foreground="$($script:CorFundo)" FontWeight="Bold" BorderThickness="0"/>
+                        </StackPanel>
+                        <Border Background="$($script:CorFundoCard)" CornerRadius="8" Padding="18,16" Margin="0,0,0,18">
+                            <StackPanel>
+                                <TextBlock Text="José Pereira Lima — j.pereira" FontWeight="Bold" FontSize="13.5" Margin="0,0,0,10"/>
+                                <Grid Margin="0,0,0,8"><TextBlock Text="Cargo"/><TextBlock Text="Técnico Judiciário — Cartório Eleitoral ZE 015" HorizontalAlignment="Right" Foreground="$($script:CorTextoSecundario)"/></Grid>
+                                <Grid Margin="0,0,0,8"><TextBlock Text="Status da conta"/><Border HorizontalAlignment="Right" Background="#293FB863" CornerRadius="10" Padding="9,2"><TextBlock Text="Ativa" FontSize="11" FontWeight="Bold" Foreground="$($script:CorAccent)"/></Border></Grid>
+                                <Grid><TextBlock Text="Último logon"/><TextBlock Text="09/09/2026 08:14" HorizontalAlignment="Right" FontFamily="Consolas" FontSize="11.5" Foreground="$($script:CorTextoSecundario)"/></Grid>
+                            </StackPanel>
+                        </Border>
+                        <WrapPanel>
+                            <Button Content="Desbloquear conta" Padding="14,8" Margin="0,0,10,0" IsEnabled="False"/>
+                            <Button Content="Resetar senha" Padding="14,8" IsEnabled="False"/>
+                        </WrapPanel>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- ==== ADMINISTRAÇÃO (mock) ==== -->
+                <ScrollViewer x:Name="PaginaAdmin" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        <TextBlock Text="Administração" FontSize="22" FontWeight="Bold" Margin="0,0,0,4"/>
+                        <TextBlock Text="Zonas, limiares e campanhas - visível só pra administradores." Foreground="$($script:CorTextoSecundario)" Margin="0,0,0,18" TextWrapping="Wrap"/>
+                        <Border Background="$($script:CorFundoCard)" CornerRadius="8" Padding="14,12" Margin="0,0,0,8"><Grid><StackPanel><TextBlock Text="Gerenciar Zonas" FontWeight="Bold" FontSize="13.5"/><TextBlock Text="Rede substituta, observações por zona" FontSize="12" Foreground="$($script:CorTextoSecundario)"/></StackPanel><Button Content="Abrir" HorizontalAlignment="Right" Padding="14,6" IsEnabled="False"/></Grid></Border>
+                        <Border Background="$($script:CorFundoCard)" CornerRadius="8" Padding="14,12" Margin="0,0,0,8"><Grid><StackPanel><TextBlock Text="Gerenciar Campanhas" FontWeight="Bold" FontSize="13.5"/><TextBlock Text="Criar, editar e desativar campanhas" FontSize="12" Foreground="$($script:CorTextoSecundario)"/></StackPanel><Button Content="Abrir" HorizontalAlignment="Right" Padding="14,6" IsEnabled="False"/></Grid></Border>
+                        <Border Background="$($script:CorFundoCard)" CornerRadius="8" Padding="14,12"><Grid><StackPanel><TextBlock Text="Limiares e versões" FontWeight="Bold" FontSize="13.5"/><TextBlock Text="Versão mínima aceita por sistema" FontSize="12" Foreground="$($script:CorTextoSecundario)"/></StackPanel><Button Content="Abrir" HorizontalAlignment="Right" Padding="14,6" IsEnabled="False"/></Grid></Border>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- ==== BUSCA 360 (mock, novo) ==== -->
+                <ScrollViewer x:Name="PaginaBusca360" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        <TextBlock Text="Busca 360°" FontSize="22" FontWeight="Bold" Margin="0,0,0,4"/>
+                        <TextBlock Text="Uma consulta só, juntando rede, AD, OCS, chamados e campanha." Foreground="$($script:CorTextoSecundario)" Margin="0,0,0,6" TextWrapping="Wrap"/>
+                        <Border Background="#29E8B93E" BorderBrush="$($script:CorAmber)" BorderThickness="1" CornerRadius="6" Padding="10,6" Margin="0,0,0,18" HorizontalAlignment="Left">
+                            <TextBlock Text="Pré-visualização - ainda não implementado" FontSize="11.5" Foreground="$($script:CorAmber)"/>
+                        </Border>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,18">
+                            <TextBox Width="300" Margin="0,0,10,0" Text="ZMA015-DESK-02"/>
+                            <Button Content="Buscar" Padding="16,8" Background="$($script:CorAccent)" Foreground="$($script:CorFundo)" FontWeight="Bold" BorderThickness="0"/>
+                        </StackPanel>
+                        <UniformGrid Columns="4" Margin="0,0,0,18">
+                            <Border Background="$($script:CorFundoCard)" CornerRadius="8" Padding="18,14" Margin="0,0,8,0"><StackPanel><TextBlock Text="Online" FontSize="22" FontWeight="Bold" Foreground="$($script:CorAccent)"/><TextBlock Text="Rede" FontSize="12" Foreground="$($script:CorTextoSecundario)" Margin="0,3,0,0"/></StackPanel></Border>
+                            <Border Background="$($script:CorFundoCard)" CornerRadius="8" Padding="18,14" Margin="4,0,4,0"><StackPanel><TextBlock Text="Ativa" FontSize="22" FontWeight="Bold"/><TextBlock Text="Conta de acesso" FontSize="12" Foreground="$($script:CorTextoSecundario)" Margin="0,3,0,0"/></StackPanel></Border>
+                            <Border Background="$($script:CorFundoCard)" CornerRadius="8" Padding="18,14" Margin="4,0,4,0"><StackPanel><TextBlock Text="Mini-Positivo" FontSize="20" FontWeight="Bold"/><TextBlock Text="Modelo (OCS)" FontSize="12" Foreground="$($script:CorTextoSecundario)" Margin="0,3,0,0"/></StackPanel></Border>
+                            <Border Background="$($script:CorFundoCard)" CornerRadius="8" Padding="18,14" Margin="8,0,0,0"><StackPanel><TextBlock Text="1" FontSize="22" FontWeight="Bold" Foreground="$($script:CorPerigo)"/><TextBlock Text="Chamado aberto" FontSize="12" Foreground="$($script:CorTextoSecundario)" Margin="0,3,0,0"/></StackPanel></Border>
+                        </UniformGrid>
+                        <Border Background="$($script:CorFundoCard)" CornerRadius="8" Padding="18,16">
+                            <StackPanel>
+                                <TextBlock Text="ZMA015-DESK-02 — ZE 015 (Grajaú)" FontWeight="Bold" FontSize="13.5" Margin="0,0,0,10"/>
+                                <Grid Margin="0,0,0,8"><TextBlock Text="SIS 3.47 · Criptosis 1.04 · GEDAI-UE 6.27"/><Border HorizontalAlignment="Right" Background="#293FB863" CornerRadius="10" Padding="9,2"><TextBlock Text="Pronta p/ campanha" FontSize="11" FontWeight="Bold" Foreground="$($script:CorAccent)"/></Border></Grid>
+                                <Grid><TextBlock Text="Chamado #4821 — &quot;Lentidão ao abrir SIS&quot;"/><Border HorizontalAlignment="Right" Background="#29E8B93E" CornerRadius="10" Padding="9,2"><TextBlock Text="Em andamento" FontSize="11" FontWeight="Bold" Foreground="$($script:CorAmber)"/></Border></Grid>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- ==== CHAMADOS (mock, novo) ==== -->
+                <ScrollViewer x:Name="PaginaChamados" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        <TextBlock Text="Chamados" FontSize="22" FontWeight="Bold" Margin="0,0,0,4"/>
+                        <TextBlock Text="Integração com o service desk (GLPI) - depende de acesso à API, ainda não confirmado." Foreground="$($script:CorTextoSecundario)" Margin="0,0,0,6" TextWrapping="Wrap"/>
+                        <Border Background="#29E8B93E" BorderBrush="$($script:CorAmber)" BorderThickness="1" CornerRadius="6" Padding="10,6" Margin="0,0,0,18" HorizontalAlignment="Left">
+                            <TextBlock Text="Pré-visualização - integração ainda não implementada" FontSize="11.5" Foreground="$($script:CorAmber)"/>
+                        </Border>
+                        <Button Content="Abrir novo chamado" Padding="16,10" Margin="0,0,0,18" HorizontalAlignment="Left" Background="$($script:CorAccent)" Foreground="$($script:CorFundo)" FontWeight="Bold" BorderThickness="0" IsEnabled="False"/>
+                        <Border Background="$($script:CorFundoCard)" CornerRadius="8" Padding="14,12" Margin="0,0,0,8"><Grid><StackPanel><TextBlock Text="#4821 — Lentidão ao abrir SIS" FontWeight="Bold" FontSize="13.5"/><TextBlock Text="j.pereira · ZE 015" FontSize="12" Foreground="$($script:CorTextoSecundario)"/></StackPanel><Border HorizontalAlignment="Right" VerticalAlignment="Center" Background="#29E8B93E" CornerRadius="10" Padding="9,3"><TextBlock Text="Em andamento" FontSize="11" FontWeight="Bold" Foreground="$($script:CorAmber)"/></Border></Grid></Border>
+                        <Border Background="$($script:CorFundoCard)" CornerRadius="8" Padding="14,12" Margin="0,0,0,8"><Grid><StackPanel><TextBlock Text="#4819 — Impressora não imprime" FontWeight="Bold" FontSize="13.5"/><TextBlock Text="m.souza · ZE 021" FontSize="12" Foreground="$($script:CorTextoSecundario)"/></StackPanel><Border HorizontalAlignment="Right" VerticalAlignment="Center" Background="#29E0645A" CornerRadius="10" Padding="9,3"><TextBlock Text="Aberto" FontSize="11" FontWeight="Bold" Foreground="$($script:CorPerigo)"/></Border></Grid></Border>
+                        <Border Background="$($script:CorFundoCard)" CornerRadius="8" Padding="14,12"><Grid><StackPanel><TextBlock Text="#4802 — Certificado P12 vencido" FontWeight="Bold" FontSize="13.5"/><TextBlock Text="a.lima · ZE 044" FontSize="12" Foreground="$($script:CorTextoSecundario)"/></StackPanel><Border HorizontalAlignment="Right" VerticalAlignment="Center" Background="#293FB863" CornerRadius="10" Padding="9,3"><TextBlock Text="Resolvido" FontSize="11" FontWeight="Bold" Foreground="$($script:CorAccent)"/></Border></Grid></Border>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- ==== BASE DE CONHECIMENTO (mock, novo) ==== -->
+                <ScrollViewer x:Name="PaginaKb" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        <TextBlock Text="Base de Conhecimento" FontSize="22" FontWeight="Bold" Margin="0,0,0,4"/>
+                        <TextBlock Text="Artigos internos de solução rápida - pra não depender de perguntar no grupo toda vez." Foreground="$($script:CorTextoSecundario)" Margin="0,0,0,6" TextWrapping="Wrap"/>
+                        <Border Background="#29E8B93E" BorderBrush="$($script:CorAmber)" BorderThickness="1" CornerRadius="6" Padding="10,6" Margin="0,0,0,18" HorizontalAlignment="Left">
+                            <TextBlock Text="Pré-visualização - ainda não implementado" FontSize="11.5" Foreground="$($script:CorAmber)"/>
+                        </Border>
+                        <Border Background="$($script:CorFundoCard)" CornerRadius="8" Padding="16,14" Margin="0,0,0,10">
+                            <StackPanel>
+                                <TextBlock Text="SIS não abre após atualização de certificado" FontWeight="Bold" FontSize="14"/>
+                                <TextBlock Text="STIC-KB-014 · atualizado 02/09/2026" FontSize="11" FontFamily="Consolas" Foreground="$($script:CorTextoSecundario)" Margin="0,2,0,0"/>
+                                <TextBlock Text="Passo a passo pra revalidar o Certificado P12 quando o SIS trava na tela de login." FontSize="12.5" Foreground="$($script:CorTextoSecundario)" Margin="0,6,0,0" TextWrapping="Wrap"/>
+                            </StackPanel>
+                        </Border>
+                        <Border Background="$($script:CorFundoCard)" CornerRadius="8" Padding="16,14" Margin="0,0,0,10">
+                            <StackPanel>
+                                <TextBlock Text="Máquina não aparece na varredura da Visão" FontWeight="Bold" FontSize="14"/>
+                                <TextBlock Text="STIC-KB-009 · atualizado 28/08/2026" FontSize="11" FontFamily="Consolas" Foreground="$($script:CorTextoSecundario)" Margin="0,2,0,0"/>
+                                <TextBlock Text="Checklist de rede/firewall antes de abrir chamado." FontSize="12.5" Foreground="$($script:CorTextoSecundario)" Margin="0,6,0,0" TextWrapping="Wrap"/>
+                            </StackPanel>
+                        </Border>
+                        <Border Background="$($script:CorFundoCard)" CornerRadius="8" Padding="16,14">
+                            <StackPanel>
+                                <TextBlock Text="Como desbloquear conta de cartório" FontWeight="Bold" FontSize="14"/>
+                                <TextBlock Text="STIC-KB-002 · atualizado 14/08/2026" FontSize="11" FontFamily="Consolas" Foreground="$($script:CorTextoSecundario)" Margin="0,2,0,0"/>
+                                <TextBlock Text="Procedimento padrão pra técnico de campo, sem precisar escalar." FontSize="12.5" Foreground="$($script:CorTextoSecundario)" Margin="0,6,0,0" TextWrapping="Wrap"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- ==== MEUS ATENDIMENTOS (mock, novo) ==== -->
+                <ScrollViewer x:Name="PaginaAtendimentos" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        <TextBlock Text="Meus Atendimentos" FontSize="22" FontWeight="Bold" Margin="0,0,0,4"/>
+                        <TextBlock Text="Histórico do que você já resolveu - hoje isso não fica registrado em lugar nenhum." Foreground="$($script:CorTextoSecundario)" Margin="0,0,0,6" TextWrapping="Wrap"/>
+                        <Border Background="#29E8B93E" BorderBrush="$($script:CorAmber)" BorderThickness="1" CornerRadius="6" Padding="10,6" Margin="0,0,0,18" HorizontalAlignment="Left">
+                            <TextBlock Text="Pré-visualização - ainda não implementado" FontSize="11.5" Foreground="$($script:CorAmber)"/>
+                        </Border>
+                        <Border Background="$($script:CorFundoCard)" CornerRadius="8" Padding="18,16">
+                            <StackPanel>
+                                <TextBlock Text="Hoje — 09/09/2026" FontWeight="Bold" FontSize="13.5" Margin="0,0,0,10"/>
+                                <Grid Margin="0,0,0,8"><TextBlock Text="Varredura ZE 015 concluída"/><TextBlock Text="16:12" HorizontalAlignment="Right" FontFamily="Consolas" FontSize="11.5" Foreground="$($script:CorTextoSecundario)"/></Grid>
+                                <Grid Margin="0,0,0,8"><TextBlock Text="Chamado #4821 respondido"/><TextBlock Text="14:40" HorizontalAlignment="Right" FontFamily="Consolas" FontSize="11.5" Foreground="$($script:CorTextoSecundario)"/></Grid>
+                                <Grid><TextBlock Text="Conta j.pereira desbloqueada"/><TextBlock Text="11:05" HorizontalAlignment="Right" FontFamily="Consolas" FontSize="11.5" Foreground="$($script:CorTextoSecundario)"/></Grid>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+
+            </Grid>
         </Grid>
     </Grid>
 </Controls:MetroWindow>
@@ -232,9 +633,18 @@ $readerJanela = New-Object System.Xml.XmlNodeReader $xamlJanela
 $script:Janela = [System.Windows.Markup.XamlReader]::Load($readerJanela)
 
 $script:PainelLogin = $script:Janela.FindName("PainelLogin")
-$script:PainelPrincipal = $script:Janela.FindName("PainelPrincipal")
+$script:PainelApp = $script:Janela.FindName("PainelApp")
 $script:BtnEntrarGoogle = $script:Janela.FindName("BtnEntrarGoogle")
 $script:TxtStatusLogin = $script:Janela.FindName("TxtStatusLogin")
+$script:BoxAmbienteHomolog = $script:Janela.FindName("BoxAmbienteHomolog")
+$script:SeloHomologSidebar = $script:Janela.FindName("SeloHomologSidebar")
+if ($env:VISAO_AMBIENTE -eq 'homologacao') {
+    $script:BoxAmbienteHomolog.Visibility = [System.Windows.Visibility]::Visible
+    $script:SeloHomologSidebar.Visibility = [System.Windows.Visibility]::Visible
+}
+$script:TxtNomeUsuarioSidebar = $script:Janela.FindName("TxtNomeUsuarioSidebar")
+$script:TxtPerfilSidebar = $script:Janela.FindName("TxtPerfilSidebar")
+$script:TxtGrupoSidebar = $script:Janela.FindName("TxtGrupoSidebar")
 $script:TxtZona = $script:Janela.FindName("TxtZona")
 $script:BtnIniciarVarredura = $script:Janela.FindName("BtnIniciarVarredura")
 $script:BtnCancelarVarredura = $script:Janela.FindName("BtnCancelarVarredura")
@@ -243,6 +653,62 @@ $script:TxtStatusPrincipal = $script:Janela.FindName("TxtStatusPrincipal")
 $script:BarraProgresso = $script:Janela.FindName("BarraProgresso")
 $script:GridResultados = $script:Janela.FindName("GridResultados")
 $script:TxtLog = $script:Janela.FindName("TxtLog")
+$script:TxtCardZona = $script:Janela.FindName("TxtCardZona")
+$script:TxtCardTotal = $script:Janela.FindName("TxtCardTotal")
+$script:TxtCardHostPc = $script:Janela.FindName("TxtCardHostPc")
+$script:TxtCardBloqueado = $script:Janela.FindName("TxtCardBloqueado")
+
+# ============================================================
+# Navegacao por barra lateral (2026-09-09) - mockup aprovado antes de
+# mexer aqui (artifact separado, "Visao Desktop"). "Rede" e' a UNICA
+# pagina com logica de verdade (era o PainelPrincipal inteiro antes) -
+# todas as outras sao MOCK, com os MESMOS dados do artifact, ate' o
+# usuario decidir o que vira funcional e como.
+# ============================================================
+$script:MapaNavegacao = [ordered]@{
+    Inicio       = @{ Botao = $script:Janela.FindName("NavInicio");       Pagina = $script:Janela.FindName("PaginaInicio") }
+    Rede         = @{ Botao = $script:Janela.FindName("NavRede");         Pagina = $script:Janela.FindName("PaginaRede") }
+    Campanhas    = @{ Botao = $script:Janela.FindName("NavCampanhas");    Pagina = $script:Janela.FindName("PaginaCampanhas") }
+    Remoto       = @{ Botao = $script:Janela.FindName("NavRemoto");       Pagina = $script:Janela.FindName("PaginaRemoto") }
+    Pacotes      = @{ Botao = $script:Janela.FindName("NavPacotes");      Pagina = $script:Janela.FindName("PaginaPacotes") }
+    Usuarios     = @{ Botao = $script:Janela.FindName("NavUsuarios");     Pagina = $script:Janela.FindName("PaginaUsuarios") }
+    Admin        = @{ Botao = $script:Janela.FindName("NavAdmin");        Pagina = $script:Janela.FindName("PaginaAdmin") }
+    Busca360     = @{ Botao = $script:Janela.FindName("NavBusca360");     Pagina = $script:Janela.FindName("PaginaBusca360") }
+    Chamados     = @{ Botao = $script:Janela.FindName("NavChamados");     Pagina = $script:Janela.FindName("PaginaChamados") }
+    Kb           = @{ Botao = $script:Janela.FindName("NavKb");           Pagina = $script:Janela.FindName("PaginaKb") }
+    Atendimentos = @{ Botao = $script:Janela.FindName("NavAtendimentos"); Pagina = $script:Janela.FindName("PaginaAtendimentos") }
+}
+
+function New-PincelWpf {
+    param([string]$Hex)
+    return New-Object System.Windows.Media.SolidColorBrush ([System.Windows.Media.ColorConverter]::ConvertFromString($Hex))
+}
+$script:PincelNavAtivo = New-PincelWpf $script:CorAccent
+$script:PincelNavAtivoTexto = New-PincelWpf $script:CorFundo
+$script:PincelNavInativoTexto = New-PincelWpf $script:CorTextoSecundario
+$script:PincelTransparente = [System.Windows.Media.Brushes]::Transparent
+
+function Mostrar-PaginaWpf {
+    param([string]$Chave)
+    foreach ($nome in $script:MapaNavegacao.Keys) {
+        $item = $script:MapaNavegacao[$nome]
+        $ativo = ($nome -eq $Chave)
+        $item.Pagina.Visibility = if ($ativo) { [System.Windows.Visibility]::Visible } else { [System.Windows.Visibility]::Collapsed }
+        $item.Botao.Background = if ($ativo) { $script:PincelNavAtivo } else { $script:PincelTransparente }
+        $item.Botao.Foreground = if ($ativo) { $script:PincelNavAtivoTexto } else { $script:PincelNavInativoTexto }
+        $item.Botao.FontWeight = if ($ativo) { [System.Windows.FontWeights]::Bold } else { [System.Windows.FontWeights]::Normal }
+    }
+}
+foreach ($nome in $script:MapaNavegacao.Keys) {
+    $chaveClosure = $nome
+    $script:MapaNavegacao[$nome].Botao.Add_Click({ Mostrar-PaginaWpf -Chave $chaveClosure }.GetNewClosure())
+}
+
+# Atalhos da pagina Inicio - levam direto pra pagina correspondente.
+$script:Janela.FindName("AtalhoIniciarVarredura").Add_Click({ Mostrar-PaginaWpf -Chave 'Rede' })
+$script:Janela.FindName("AtalhoBusca360").Add_Click({ Mostrar-PaginaWpf -Chave 'Busca360' })
+$script:Janela.FindName("AtalhoChamados").Add_Click({ Mostrar-PaginaWpf -Chave 'Chamados' })
+$script:Janela.FindName("AtalhoCampanhas").Add_Click({ Mostrar-PaginaWpf -Chave 'Campanhas' })
 
 $script:GridResultados.ItemsSource = $script:LinhasGrid
 
@@ -251,6 +717,26 @@ function Add-LogWpf {
     $script:TxtLog.Text += "$(Get-Date -Format 'HH:mm:ss')  $Texto`r`n"
     $script:TxtLog.ScrollToEnd()
 }
+
+# ============================================================
+# Cards de resumo (2026-09-09) - recalcula toda vez que a grade muda
+# (CollectionChanged do ObservableCollection ja usado como ItemsSource -
+# cobre Add/Clear/atualizacao de linha existente sem precisar espalhar
+# chamada manual em cada ponto que mexe em LinhasGrid).
+# ============================================================
+function Update-CardsResumoWpf {
+    $total = $script:LinhasGrid.Count
+    $hostPc = 0
+    $bloqueado = 0
+    foreach ($linha in $script:LinhasGrid) {
+        if ($linha.Tipo -eq "Host / PC") { $hostPc++ }
+        if ($linha.Instalador -eq "Bloqueado") { $bloqueado++ }
+    }
+    $script:TxtCardTotal.Text = "$total"
+    $script:TxtCardHostPc.Text = "$hostPc"
+    $script:TxtCardBloqueado.Text = "$bloqueado"
+}
+$script:LinhasGrid.add_CollectionChanged({ Update-CardsResumoWpf })
 
 # ============================================================
 # Colunas dinamicas de Sistemas Eleitorais extra (mesmo padrao do
@@ -353,7 +839,14 @@ $script:TimerLogin.Add_Tick({
         Connect-VisaoGoogle | Out-Null
 
         $script:PainelLogin.Visibility = [System.Windows.Visibility]::Collapsed
-        $script:PainelPrincipal.Visibility = [System.Windows.Visibility]::Visible
+        $script:PainelApp.Visibility = [System.Windows.Visibility]::Visible
+        # Perfil/Grupo (2026-09-09) - ainda nao existe cadastro de verdade
+        # (pendente junto com o resto do modulo de administracao de
+        # usuarios) - fixo por enquanto, mesmo dado do mockup aprovado.
+        $script:TxtNomeUsuarioSidebar.Text = $env:USERNAME
+        $script:TxtPerfilSidebar.Text = "Administrador"
+        $script:TxtGrupoSidebar.Text = "SEASU"
+        Mostrar-PaginaWpf -Chave 'Inicio'
 
         if (-not (Connect-ServidorVisao)) {
             Add-LogWpf "[ERRO] Falha ao conectar ao POLICY-SERVER - verifique a rede/VPN e reabra a ferramenta."
@@ -718,6 +1211,7 @@ $script:BtnIniciarVarredura.Add_Click({
     $script:Estado.RedeCompartilhada = Test-RedeEhCompartilhadaRemoto -Prefixo $resolucao.Prefixo -Zonas $script:Estado.Zonas
     $script:TxtInfoZona.Text = "ZE $($zona.ToString('000')) $($resolucao.Sede)  Rede a varrer: $($resolucao.Prefixo)0/24"
     $script:Estado.ZonaAtual = $zona
+    $script:TxtCardZona.Text = "ZE $($zona.ToString('000'))"
     $script:Resultados.Clear()
     $script:LinhasGrid.Clear()
     $script:MaquinasDesligadasOcs.Clear()
