@@ -666,9 +666,24 @@ $script:TimerVarredura.Add_Tick({
         # web/mobile/painel TV. Silencioso de proposito (so loga aviso,
         # nunca interrompe o tecnico) - mesmo espirito do enriquecimento
         # OCS acima.
+        # Fase 1.5: alem das colunas ja existentes, manda tambem a versao
+        # de CADA Sistema Eleitoral extra (nao so o generico VersaoSis) -
+        # lida direto de ".Bruto" (o resultado cru de cada linha, ja
+        # carregado por ConvertTo-LinhaGridWpf), pra TODOS os itens de
+        # $script:Estado.SistemasEleitoraisExtra (nao so os que aparecem
+        # na grade principal - NaGradePrincipal=$true - viabiliza
+        # calcular "pronta pra campanha" de verdade no Dashboard Web,
+        # que pode exigir um sistema que nem aparece na tela).
         try {
             $sedeAtual = (Resolve-RedeDaZonaRemoto -Zona $script:Estado.ZonaAtual -Zonas $script:Estado.Zonas).Sede
-            $respInventario = Send-InventarioZonaRemoto -Zona $script:Estado.ZonaAtual -Sede $sedeAtual -Linhas @($script:LinhasGrid)
+            $linhasComSistemas = foreach ($linha in $script:LinhasGrid) {
+                $sistemas = @{}
+                foreach ($sis in $script:Estado.SistemasEleitoraisExtra) {
+                    $sistemas[$sis.Coluna] = $linha.Bruto.($sis.Propriedade)
+                }
+                $linha | Add-Member -NotePropertyName Sistemas -NotePropertyValue $sistemas -Force -PassThru
+            }
+            $respInventario = Send-InventarioZonaRemoto -Zona $script:Estado.ZonaAtual -Sede $sedeAtual -Linhas @($linhasComSistemas) -SistemasEleitoraisExtra $script:Estado.SistemasEleitoraisExtra
             if (-not $respInventario.Ok) { Add-LogWpf "[AVISO] $($respInventario.Mensagem)" }
         } catch { Add-LogWpf "[AVISO] Falha ao publicar inventário da zona: $($_.Exception.Message)" }
 

@@ -566,17 +566,31 @@ function Send-InventarioZonaRemoto {
         (bate com o que ConvertTo-LinhaGridWpf/Add-LinhaGrid ja produzem -
         IP/Hostname/Tipo/Modelo/DetectadoPor/Vnc/Rc/Sis/Instalador -
         chamar direto com as linhas da grade, sem precisar remontar nada).
+
+        Fase 1.5: $Linhas pode opcionalmente trazer uma propriedade
+        ".Sistemas" (hashtable Coluna->Versao, um item por Sistema
+        Eleitoral extra) - se vier, e mandada dentro de "sistemas" no
+        corpo de cada linha. $SistemasEleitoraisExtra so serve pra saber
+        QUAIS colunas existem (pra sempre mandar todas, mesmo em branco,
+        e o .gs conseguir montar o cabecalho certo) - evita hardcodar
+        os nomes aqui, fonte unica continua sendo VisaoServidor.ps1.
     #>
     param(
         [Parameter(Mandatory)][int]$Zona,
         [string]$Sede = "",
         [string]$Tecnico = $env:USERNAME,
         [Parameter(Mandatory)][object[]]$Linhas,
+        [object[]]$SistemasEleitoraisExtra = @(),
         [int]$TimeoutSec = 30
     )
 
     $zonaPad = "{0:D3}" -f $Zona
     $linhasCorpo = @($Linhas | ForEach-Object {
+        $sistemasCorpo = @{}
+        foreach ($sis in $SistemasEleitoraisExtra) {
+            $valor = if ($_.Sistemas) { $_.Sistemas[$sis.Coluna] } else { $null }
+            $sistemasCorpo[$sis.Coluna] = if ($valor) { $valor } else { "" }
+        }
         @{
             ip           = $_.IP
             hostname     = $_.Hostname
@@ -587,6 +601,7 @@ function Send-InventarioZonaRemoto {
             rc           = $_.Rc
             sis          = $_.Sis
             instalador   = $_.Instalador
+            sistemas     = $sistemasCorpo
         }
     })
     if ($linhasCorpo.Count -eq 0) {

@@ -762,9 +762,25 @@ function Invoke-TickVarredura {
         # classificacao de Add-LinhaGrid - garante que o que e publicado
         # bate exatamente com o que aparece na tela.
         try {
+            # Fase 1.5: alem das colunas ja existentes (lidas da tela,
+            # como antes - preserva a garantia de "bate com o que
+            # aparece"), manda tambem a versao de CADA Sistema Eleitoral
+            # extra. Achado ao vivo: Add-LinhaGrid ja guarda o resultado
+            # BRUTO da varredura em "$row.Tag" - nao precisa trocar a
+            # fonte de dados pra $script:Resultados (que exigiria
+            # reaplicar o mesmo filtro Online/PertenceZonaAtual que ja
+            # decide o que entra no grid), so ler ".Tag" pra chegar nas
+            # propriedades por sistema (Bitlocker/Gedai/Holocron/etc -
+            # inclusive os que NaGradePrincipal=$false, que nem aparecem
+            # como coluna na tela, mas o resultado bruto sempre tem).
             $linhasInventario = @(
                 for ($i = 0; $i -lt $grid.Rows.Count; $i++) {
                     $linha = $grid.Rows[$i]
+                    $bruto = $linha.Tag
+                    $sistemas = @{}
+                    foreach ($sis in $script:Estado.SistemasEleitoraisExtra) {
+                        $sistemas[$sis.Coluna] = $bruto.($sis.Propriedade)
+                    }
                     [PSCustomObject]@{
                         IP           = $linha.Cells["IP"].Value
                         Hostname     = $linha.Cells["Hostname"].Value
@@ -775,11 +791,12 @@ function Invoke-TickVarredura {
                         Rc           = $linha.Cells["Rc"].Value
                         Sis          = $linha.Cells["Sis"].Value
                         Instalador   = $linha.Cells["Instalador"].Value
+                        Sistemas     = $sistemas
                     }
                 }
             )
             $sedeAtual = (Resolve-RedeDaZonaRemoto -Zona $script:Estado.ZonaAtual -Zonas $script:Estado.Zonas).Sede
-            $respInventario = Send-InventarioZonaRemoto -Zona $script:Estado.ZonaAtual -Sede $sedeAtual -Linhas $linhasInventario
+            $respInventario = Send-InventarioZonaRemoto -Zona $script:Estado.ZonaAtual -Sede $sedeAtual -Linhas $linhasInventario -SistemasEleitoraisExtra $script:Estado.SistemasEleitoraisExtra
             if (-not $respInventario.Ok) { Add-Log "[AVISO] $($respInventario.Mensagem)" "Yellow" }
         } catch { Add-Log "[AVISO] Falha ao publicar inventario da zona: $($_.Exception.Message)" "Yellow" }
 
