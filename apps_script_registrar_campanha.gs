@@ -58,15 +58,26 @@ function doPost(e) {
     if (params.token !== TOKEN) {
       return responderJson({ ok: false, erro: "token invalido" });
     }
-    if (!params.zona || !params.campanha) {
-      return responderJson({ ok: false, erro: "zona/campanha nao informada" });
-    }
-
     var planilha = SpreadsheetApp.openById(SPREADSHEET_ID);
     var aba = planilha.getSheetByName(NOME_ABA);
     if (!aba) {
       aba = planilha.insertSheet(NOME_ABA);
       aba.appendRow(CABECALHO);
+    }
+
+    // Manutencao pontual (2026-09-10) - limpar o historico (mantem so o
+    // cabecalho), usado pra zerar dados de teste do ambiente de
+    // homologacao. Guardado pelo mesmo TOKEN de sempre.
+    if (params.limpar === true) {
+      var ultimaLinha = aba.getLastRow();
+      if (ultimaLinha > 1) {
+        aba.getRange(2, 1, ultimaLinha - 1, aba.getLastColumn()).clearContent();
+      }
+      return responderJson({ ok: true, limpo: true });
+    }
+
+    if (!params.zona || !params.campanha) {
+      return responderJson({ ok: false, erro: "zona/campanha nao informada" });
     }
 
     aba.appendRow([
