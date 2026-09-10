@@ -17,6 +17,49 @@
     C:\Users\029342881104\.claude\plans\splendid-enchanting-mochi.md
 #>
 
+# ============================================================
+# Achado ao vivo (2026-09-09/10): o cmdlet ConvertFrom-Json do Windows
+# PowerShell 5.1 pode colapsar um array JSON de varios objetos num
+# UNICO objeto "colunar" (cada propriedade vira um array com os
+# valores de TODOS os itens originais, em vez de devolver um array de
+# objetos) - reproduzido de forma NAO-DETERMINISTICA (o mesmo texto
+# JSON, byte a byte identico, parseado certo em algumas chamadas e
+# errado em outras). Sintoma concreto que expos o bug de verdade
+# (2026-09-10): varredura da ZE 22 marcando 254/254 IPs como "online"
+# (real: so ~8) - rastreado ate aqui, em
+# Get-VarreduraNovosResultadosRemoto/Test-VarreduraNovosResultadosRemotoAsync,
+# que usavam ConvertFrom-Json cru pra desserializar ".Novos" (array de
+# ate 254 objetos por chamada - exatamente o cenario que dispara o
+# colapso). Mesma correcao ja usada em VisaoWpfCliente.ps1 (copiada
+# aqui pra este modulo poder se auto-proteger, sem depender do
+# cliente lembrar de usar a versao segura) - o JavaScriptSerializer
+# usado por baixo, chamado DIRETO sem passar pelo cmdlet, nao tem esse
+# problema.
+# ============================================================
+function ConvertFrom-JsonSeguro {
+    param([Parameter(Mandatory)][string]$Json)
+    Add-Type -AssemblyName System.Web.Extensions -ErrorAction SilentlyContinue
+    $serializer = New-Object System.Web.Script.Serialization.JavaScriptSerializer
+    $serializer.RecursionLimit = 100
+    $serializer.MaxJsonLength = [int]::MaxValue
+    $bruto = $serializer.DeserializeObject($Json)
+    return (Convert-ObjetoJsonBrutoSeguro $bruto)
+}
+
+function Convert-ObjetoJsonBrutoSeguro {
+    param($Objeto)
+    if ($null -eq $Objeto) { return $null }
+    if ($Objeto -is [System.Collections.IDictionary]) {
+        $h = [ordered]@{}
+        foreach ($chave in $Objeto.Keys) { $h[$chave] = Convert-ObjetoJsonBrutoSeguro $Objeto[$chave] }
+        return [PSCustomObject]$h
+    }
+    if ($Objeto -is [System.Collections.IEnumerable] -and -not ($Objeto -is [string])) {
+        return @($Objeto | ForEach-Object { Convert-ObjetoJsonBrutoSeguro $_ })
+    }
+    return $Objeto
+}
+
 $script:NomeServidorVisao = "POLICY-SERVER.tre-ma.gov.br"
 $script:CaminhoVisaoServidorPs1 = Join-Path $PSScriptRoot "VisaoServidor.ps1"
 $script:PSSessionServidor = $null
@@ -514,7 +557,7 @@ function Get-VersoesRemoto {
     #>
     param([switch]$ForcarCache)
     $json = Invoke-ComandoRemoto -ScriptBlock { param($f) Import-TabelaVersoes -ForcarCache:$f } -ArgumentList @($ForcarCache.IsPresent)
-    return ($json | ConvertFrom-Json)
+    return (ConvertFrom-JsonSeguro -Json $json)
 }
 
 function Get-SistemasEleitoraisExtraRemoto {
@@ -525,7 +568,7 @@ function Get-SistemasEleitoraisExtraRemoto {
         Gedai/Holocron/etc), buscado uma vez na conexao.
     #>
     $json = Invoke-ComandoRemoto -ScriptBlock { Get-SistemasEleitoraisExtra }
-    return @($json | ConvertFrom-Json)
+    return @(ConvertFrom-JsonSeguro -Json $json)
 }
 
 # NOTA: nao existe "Get-StatusPacoteNoDestinoRemoto" nem
@@ -605,7 +648,7 @@ function Get-VarreduraNovosResultadosRemoto {
         return [PSCustomObject]@{ Novos = @(); Concluidos = 0; Total = 0; EmAndamento = $false; SessaoPerdida = $true }
     }
 
-    $obj = $json | ConvertFrom-Json
+    $obj = ConvertFrom-JsonSeguro -Json $json
     $obj | Add-Member -NotePropertyName SessaoPerdida -NotePropertyValue $false -PassThru
 }
 
@@ -746,7 +789,7 @@ function Test-VarreduraNovosResultadosRemotoAsync {
         return [PSCustomObject]@{ Concluido = $true; Erro = $null; Resposta = $respostaPerdida }
     }
 
-    $obj = $json | ConvertFrom-Json
+    $obj = ConvertFrom-JsonSeguro -Json $json
     $resposta = $obj | Add-Member -NotePropertyName SessaoPerdida -NotePropertyValue $false -PassThru
     return [PSCustomObject]@{ Concluido = $true; Erro = $null; Resposta = $resposta }
 }
@@ -877,7 +920,7 @@ function Get-StatusPacoteRemoto {
     #>
     param([Parameter(Mandatory)][string]$JobId)
     $json = Invoke-ComandoRemoto -ScriptBlock { param($j) Get-StatusPacote -JobId $j } -ArgumentList @($JobId)
-    return ($json | ConvertFrom-Json)
+    return (ConvertFrom-JsonSeguro -Json $json)
 }
 
 # ============================================================
@@ -960,7 +1003,7 @@ function Set-ConfigEnvioDriveRemoto {
     Invoke-ComandoRemoto -ScriptBlock { param($u, $t) Set-ConfigEnvioDrive -UrlWebApp $u -Token $t } -ArgumentList @($UrlWebApp, $Token)
 }
 
-Export-ModuleMember -Function Connect-ServidorVisao, Disconnect-ServidorVisao, Invoke-ComandoRemoto, Get-IdSessaoAtualVisao, Start-VarreduraRemota, Get-VarreduraNovosResultadosRemoto, Start-VarreduraNovosResultadosRemotoAsync, Test-VarreduraNovosResultadosRemotoAsync, Start-ChamadaRemotaAssincrona, Test-ChamadaRemotaAssincronaConcluida, Get-VersoesRemoto, Get-SistemasEleitoraisExtraRemoto, Start-BaixarPacoteRemoto, Get-StatusPacoteRemoto, Invoke-LigarWolRemoto, Get-ConfigVersoesRemoto, Set-ConfigVersoesRemoto, Get-ConfigZonasWebAppRemoto, Set-ConfigZonasWebAppRemoto, Get-ConfigCampanhasWebAppRemoto, Set-ConfigCampanhasWebAppRemoto, Get-ConfigEnvioDriveRemoto, Set-ConfigEnvioDriveRemoto
+Export-ModuleMember -Function Connect-ServidorVisao, Disconnect-ServidorVisao, Invoke-ComandoRemoto, Get-IdSessaoAtualVisao, Start-VarreduraRemota, Get-VarreduraNovosResultadosRemoto, Start-VarreduraNovosResultadosRemotoAsync, Test-VarreduraNovosResultadosRemotoAsync, Start-ChamadaRemotaAssincrona, Test-ChamadaRemotaAssincronaConcluida, Get-VersoesRemoto, Get-SistemasEleitoraisExtraRemoto, Start-BaixarPacoteRemoto, Get-StatusPacoteRemoto, Invoke-LigarWolRemoto, Get-ConfigVersoesRemoto, Set-ConfigVersoesRemoto, Get-ConfigZonasWebAppRemoto, Set-ConfigZonasWebAppRemoto, Get-ConfigCampanhasWebAppRemoto, Set-ConfigCampanhasWebAppRemoto, Get-ConfigEnvioDriveRemoto, Set-ConfigEnvioDriveRemoto, ConvertFrom-JsonSeguro
 
 # NOTA: as consultas ao AD (Usuarios da ZE, status do Instalador) NAO
 # passam por aqui - ver VisaoAD.psm1. Nao sao trafego de varredura, e

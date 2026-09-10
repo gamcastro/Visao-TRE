@@ -11,7 +11,7 @@ planilha de dados** (nenhum dado de teste toca produção):
 
 | Ambiente | Branch git | Script ID (`.clasp.json`) | Planilha |
 |---|---|---|---|
-| Homologação | `homolog` (ESTE branch) | `1HeNs2rvTDQipnGXGKpbzFUnk7thYK2a_rBHr2mfkIf5eb883hfwxquc1` | Visão - Homologação (`1NVSQBPx8rtpPv1L9AP4o1a_11WlazjsoFF73tdcgq5M`) |
+| Homologação | `homolog` (ESTE branch) | `1HeNs2rvTDQipnGXGKpbzFUnk7thYK2a_rBHr2mfkIf5eb883hfwxquc1` | Visão - Homologação (`1NVSQBPx8rtpPv1L9AP4o1a_11WIazjsoFF73tdcgq5M`) |
 | Produção | `main` | `1sRfhHjysH5fdCdBNP7PwuZKRNTnULHfBQhtBT5b3sOejq_OTqAg8lvu-` | Visão (produção, `1_2aZhFgplRqCdPVV_lq4XJT9wgqkfbZpEFZRu1Zu9_I`) |
 
 O código é o mesmo nos dois lados, exceto 2 constantes em `Code.gs`

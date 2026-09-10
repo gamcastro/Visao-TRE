@@ -89,46 +89,60 @@ function doPost(e) {
     formatarColunasSistemasComoTexto_(aba);
 
     var agora = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd HH:mm:ss");
-    var zonaPad = String(params.zona);
+    // Comparado sempre como NUMERO dos dois lados (achado ao vivo,
+    // 2026-09-10 - ver correcao no ambiente de homologacao primeiro):
+    // "022" (zero a esquerda) escrito numa celula do Sheets e
+    // auto-convertido pra NUMERO puro (22) pelo proprio Google Sheets -
+    // comparar como texto ("022" !== "22") nunca batia, entao o upsert
+    // por chave abaixo NUNCA encontrava a linha existente e duplicava a
+    // zona inteira a cada nova varredura (confirmado: uma zona rescaneada
+    // 2x virou 508 linhas em vez de 254). Troca de estrategia: em vez de
+    // upsert por IP (fragil), substitui a ZONA INTEIRA a cada publicacao
+    // - cada varredura ja manda o resultado completo da zona mesmo, e
+    // isso tem o efeito colateral bom de maquina desligada/baixada sumir
+    // sozinha do Inventario no proximo re-scan, em vez de ficar presa.
+    var zonaNum = Number(params.zona);
+    var zonaTexto = String(params.zona);
     var sede = params.sede || "";
     var tecnico = params.tecnico || "";
 
-    // Le a aba inteira UMA vez e indexa por "Zona|IP" - evita procurar
-    // linha por linha pra cada IP recebido (uma varredura manda ate 254
-    // de uma vez).
+    // Mantem so as linhas de OUTRAS zonas e reescreve tudo de uma vez (1
+    // setValues) em vez de apagar linha por linha (deleteRow() num loop
+    // e O(n^2) - cada chamada desloca fisicamente as linhas abaixo -
+    // deu timeout no cliente com uma zona de 254 linhas, ver correcao
+    // feita primeiro no ambiente de homologacao).
     var dados = aba.getDataRange().getValues();
-    var indice = {}; // "Zona|IP" -> numero da linha (1-based, ja contando o cabecalho)
+    var linhasMantidas = [];
     for (var i = 1; i < dados.length; i++) {
-      var chave = String(dados[i][0]).trim() + "|" + String(dados[i][2]).trim();
-      indice[chave] = i + 1;
+      if (Number(dados[i][0]) !== zonaNum) {
+        linhasMantidas.push(dados[i]);
+      }
     }
 
     var linhasNovas = [];
-    var atualizacoes = 0;
     for (var j = 0; j < params.linhas.length; j++) {
       var l = params.linhas[j];
       if (!l.ip) continue;
-      var chaveAtual = zonaPad + "|" + String(l.ip).trim();
       var valoresSistemas = COLUNAS_SISTEMAS_EXTRA.map(function (coluna) {
         return (l.sistemas && l.sistemas[coluna]) || "";
       });
       var linhaValores = [
-        zonaPad, sede, l.ip, l.hostname || "", l.tipo || "", l.modelo || "",
+        zonaTexto, sede, l.ip, l.hostname || "", l.tipo || "", l.modelo || "",
         l.detectadoPor || "", l.vnc || "", l.rc || "", l.sis || "", l.instalador || "",
         agora, tecnico
       ].concat(valoresSistemas);
-      if (indice[chaveAtual]) {
-        aba.getRange(indice[chaveAtual], 1, 1, CABECALHO.length).setValues([linhaValores]);
-        atualizacoes++;
-      } else {
-        linhasNovas.push(linhaValores);
-      }
-    }
-    if (linhasNovas.length) {
-      aba.getRange(aba.getLastRow() + 1, 1, linhasNovas.length, CABECALHO.length).setValues(linhasNovas);
+      linhasNovas.push(linhaValores);
     }
 
-    return responderJson({ ok: true, atualizadas: atualizacoes, novas: linhasNovas.length });
+    var linhasFinais = linhasMantidas.concat(linhasNovas);
+    if (dados.length > 1) {
+      aba.getRange(2, 1, dados.length - 1, CABECALHO.length).clearContent();
+    }
+    if (linhasFinais.length) {
+      aba.getRange(2, 1, linhasFinais.length, CABECALHO.length).setValues(linhasFinais);
+    }
+
+    return responderJson({ ok: true, atualizadas: 0, novas: linhasNovas.length });
   } catch (err) {
     return responderJson({ ok: false, erro: String(err) });
   }

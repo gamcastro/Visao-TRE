@@ -104,7 +104,11 @@ if ($script:AmbienteVisao -eq 'homologacao') {
     # Planilha "Visao - Homologacao" - copia independente (Arquivo > Fazer
     # uma copia) da planilha real, feita em 2026-09-09. Passa a divergir
     # da producao a partir da copia - e o esperado, e a planilha de teste.
-    $script:SpreadsheetIdVisao = "1NVSQBPx8rtpPv1L9AP4o1a_11WlazjsoFF73tdcgq5M"
+    # ID corrigido em 2026-09-10: erro de transcricao (l minusculo em vez
+    # de I maiusculo, ...11Wl... vs ...11WI...) fazia TODA a leitura de
+    # homologacao cair silenciosamente no cache local, e a publicacao no
+    # Inventario ser recusada com "Document ... is missing".
+    $script:SpreadsheetIdVisao = "1NVSQBPx8rtpPv1L9AP4o1a_11WIazjsoFF73tdcgq5M"
     $script:UrlWebAppCampanhas = "https://script.google.com/macros/s/AKfycbwIUya5wwyS5AbhNhaXWGXZocfmNICbWvaeyPSWRIuSIoBC-FK3N9yfE7ravWoxE-bE/exec"
     $script:TokenWebAppCampanhas = "2Gh5lufbOHvJ4kwUjP4brZeIhpKP"
     $script:UrlWebAppZonas = "https://script.google.com/macros/s/AKfycbyK_ZZK3a_muQtrUQDqmUVy45j4Ue4d4DMRAEU2JNLjWYoUD1e8ZNaKs5qMvs5ejy2l/exec"
