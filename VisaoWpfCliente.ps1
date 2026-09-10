@@ -284,22 +284,107 @@ $script:LinhasGrid = New-Object System.Collections.ObjectModel.ObservableCollect
                     <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
                         <StackPanel>
                             <TextBlock Text="INÍCIO" FontSize="10" FontWeight="Bold" Foreground="$($script:CorTextoSecundario)" Margin="8,4,0,6"/>
-                            <Button x:Name="NavInicio" Content="Início" HorizontalContentAlignment="Left" Padding="10,8" Margin="0,0,0,2"
-                                    Background="$($script:CorAccent)" Foreground="$($script:CorFundo)" BorderThickness="0" FontWeight="Bold"/>
+                            <Button x:Name="NavInicio" HorizontalContentAlignment="Left" Padding="10,8" Margin="0,0,0,2"
+                                    Background="$($script:CorAccent)" Foreground="$($script:CorFundo)" BorderThickness="0" FontWeight="Bold">
+                                <StackPanel Orientation="Horizontal">
+                                    <Viewbox Width="16" Height="16" Margin="0,0,10,0"><Canvas Width="24" Height="24">
+                                        <Path Data="M4 11.5 12 4l8 7.5M6 10v9h5v-5h2v5h5v-9" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1.8" Fill="Transparent" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"/>
+                                    </Canvas></Viewbox>
+                                    <TextBlock Text="Início" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
 
                             <TextBlock Text="FERRAMENTAS ATUAIS" FontSize="10" FontWeight="Bold" Foreground="$($script:CorTextoSecundario)" Margin="8,14,0,6"/>
-                            <Button x:Name="NavRede" Content="Diagnóstico de Rede" HorizontalContentAlignment="Left" Padding="10,8" Margin="0,0,0,2" Background="Transparent" Foreground="$($script:CorTextoSecundario)" BorderThickness="0"/>
-                            <Button x:Name="NavCampanhas" Content="Campanhas" HorizontalContentAlignment="Left" Padding="10,8" Margin="0,0,0,2" Background="Transparent" Foreground="$($script:CorTextoSecundario)" BorderThickness="0"/>
-                            <Button x:Name="NavRemoto" Content="Ações Remotas" HorizontalContentAlignment="Left" Padding="10,8" Margin="0,0,0,2" Background="Transparent" Foreground="$($script:CorTextoSecundario)" BorderThickness="0"/>
-                            <Button x:Name="NavPacotes" Content="Pacotes" HorizontalContentAlignment="Left" Padding="10,8" Margin="0,0,0,2" Background="Transparent" Foreground="$($script:CorTextoSecundario)" BorderThickness="0"/>
-                            <Button x:Name="NavUsuarios" Content="Usuários e Acessos" HorizontalContentAlignment="Left" Padding="10,8" Margin="0,0,0,2" Background="Transparent" Foreground="$($script:CorTextoSecundario)" BorderThickness="0"/>
-                            <Button x:Name="NavAdmin" Content="Administração" HorizontalContentAlignment="Left" Padding="10,8" Margin="0,0,0,2" Background="Transparent" Foreground="$($script:CorTextoSecundario)" BorderThickness="0"/>
+                            <Button x:Name="NavRede" HorizontalContentAlignment="Left" Padding="10,8" Margin="0,0,0,2" Background="Transparent" Foreground="$($script:CorTextoSecundario)" BorderThickness="0">
+                                <StackPanel Orientation="Horizontal">
+                                    <Viewbox Width="16" Height="16" Margin="0,0,10,0"><Canvas Width="24" Height="24">
+                                        <Ellipse Canvas.Left="10" Canvas.Top="3" Width="4" Height="4" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1.8" Fill="Transparent"/>
+                                        <Ellipse Canvas.Left="3" Canvas.Top="17" Width="4" Height="4" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1.8" Fill="Transparent"/>
+                                        <Ellipse Canvas.Left="17" Canvas.Top="17" Width="4" Height="4" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1.8" Fill="Transparent"/>
+                                        <Path Data="M12 7v5M12 12l-6 5M12 12l6 5" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1.8" Fill="Transparent" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"/>
+                                    </Canvas></Viewbox>
+                                    <TextBlock Text="Diagnóstico de Rede" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+                            <Button x:Name="NavCampanhas" HorizontalContentAlignment="Left" Padding="10,8" Margin="0,0,0,2" Background="Transparent" Foreground="$($script:CorTextoSecundario)" BorderThickness="0">
+                                <StackPanel Orientation="Horizontal">
+                                    <Viewbox Width="16" Height="16" Margin="0,0,10,0"><Canvas Width="24" Height="24">
+                                        <Path Data="M4 20V10M12 20V4M20 20v-7" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1.8" Fill="Transparent" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"/>
+                                    </Canvas></Viewbox>
+                                    <TextBlock Text="Campanhas" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+                            <Button x:Name="NavRemoto" HorizontalContentAlignment="Left" Padding="10,8" Margin="0,0,0,2" Background="Transparent" Foreground="$($script:CorTextoSecundario)" BorderThickness="0">
+                                <StackPanel Orientation="Horizontal">
+                                    <Viewbox Width="16" Height="16" Margin="0,0,10,0"><Canvas Width="24" Height="24">
+                                        <Rectangle Canvas.Left="3" Canvas.Top="4" Width="18" Height="13" RadiusX="2" RadiusY="2" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1.8" Fill="Transparent"/>
+                                        <Path Data="M8 21h8M12 17v4" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1.8" Fill="Transparent" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"/>
+                                    </Canvas></Viewbox>
+                                    <TextBlock Text="Ações Remotas" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+                            <Button x:Name="NavPacotes" HorizontalContentAlignment="Left" Padding="10,8" Margin="0,0,0,2" Background="Transparent" Foreground="$($script:CorTextoSecundario)" BorderThickness="0">
+                                <StackPanel Orientation="Horizontal">
+                                    <Viewbox Width="16" Height="16" Margin="0,0,10,0"><Canvas Width="24" Height="24">
+                                        <Path Data="M21 8 12 3 3 8l9 5 9-5Z M3 8v8l9 5 9-5V8M12 13v8" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1.8" Fill="Transparent" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"/>
+                                    </Canvas></Viewbox>
+                                    <TextBlock Text="Pacotes" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+                            <Button x:Name="NavUsuarios" HorizontalContentAlignment="Left" Padding="10,8" Margin="0,0,0,2" Background="Transparent" Foreground="$($script:CorTextoSecundario)" BorderThickness="0">
+                                <StackPanel Orientation="Horizontal">
+                                    <Viewbox Width="16" Height="16" Margin="0,0,10,0"><Canvas Width="24" Height="24">
+                                        <Ellipse Canvas.Left="8.8" Canvas.Top="4.8" Width="6.4" Height="6.4" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1.8" Fill="Transparent"/>
+                                        <Path Data="M5 20c0-4 3-6 7-6s7 2 7 6" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1.8" Fill="Transparent" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"/>
+                                    </Canvas></Viewbox>
+                                    <TextBlock Text="Usuários e Acessos" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+                            <Button x:Name="NavAdmin" HorizontalContentAlignment="Left" Padding="10,8" Margin="0,0,0,2" Background="Transparent" Foreground="$($script:CorTextoSecundario)" BorderThickness="0">
+                                <StackPanel Orientation="Horizontal">
+                                    <Viewbox Width="16" Height="16" Margin="0,0,10,0"><Canvas Width="24" Height="24">
+                                        <Ellipse Canvas.Left="9.4" Canvas.Top="9.4" Width="5.2" Height="5.2" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1.8" Fill="Transparent"/>
+                                        <Path Data="M12 3v2.2M12 18.8V21M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M3 12h2.2M18.8 12H21M4.9 19.1l1.6-1.6M17.5 6.5l1.6-1.6" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1.8" Fill="Transparent" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"/>
+                                    </Canvas></Viewbox>
+                                    <TextBlock Text="Administração" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
 
                             <TextBlock Text="SERVICE DESK (PROPOSTO)" FontSize="10" FontWeight="Bold" Foreground="$($script:CorTextoSecundario)" Margin="8,14,0,6"/>
-                            <Button x:Name="NavBusca360" Content="Busca 360°" HorizontalContentAlignment="Left" Padding="10,8" Margin="0,0,0,2" Background="Transparent" Foreground="$($script:CorTextoSecundario)" BorderThickness="0"/>
-                            <Button x:Name="NavChamados" Content="Chamados" HorizontalContentAlignment="Left" Padding="10,8" Margin="0,0,0,2" Background="Transparent" Foreground="$($script:CorTextoSecundario)" BorderThickness="0"/>
-                            <Button x:Name="NavKb" Content="Base de Conhecimento" HorizontalContentAlignment="Left" Padding="10,8" Margin="0,0,0,2" Background="Transparent" Foreground="$($script:CorTextoSecundario)" BorderThickness="0"/>
-                            <Button x:Name="NavAtendimentos" Content="Meus Atendimentos" HorizontalContentAlignment="Left" Padding="10,8" Margin="0,0,0,2" Background="Transparent" Foreground="$($script:CorTextoSecundario)" BorderThickness="0"/>
+                            <Button x:Name="NavBusca360" HorizontalContentAlignment="Left" Padding="10,8" Margin="0,0,0,2" Background="Transparent" Foreground="$($script:CorTextoSecundario)" BorderThickness="0">
+                                <StackPanel Orientation="Horizontal">
+                                    <Viewbox Width="16" Height="16" Margin="0,0,10,0"><Canvas Width="24" Height="24">
+                                        <Ellipse Canvas.Left="4" Canvas.Top="4" Width="14" Height="14" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1.8" Fill="Transparent"/>
+                                        <Path Data="m21 21-4.3-4.3" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1.8" Fill="Transparent" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"/>
+                                    </Canvas></Viewbox>
+                                    <TextBlock Text="Busca 360°" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+                            <Button x:Name="NavChamados" HorizontalContentAlignment="Left" Padding="10,8" Margin="0,0,0,2" Background="Transparent" Foreground="$($script:CorTextoSecundario)" BorderThickness="0">
+                                <StackPanel Orientation="Horizontal">
+                                    <Viewbox Width="16" Height="16" Margin="0,0,10,0"><Canvas Width="24" Height="24">
+                                        <Path Data="M4 4h16v12H8l-4 4Z" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1.8" Fill="Transparent" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"/>
+                                    </Canvas></Viewbox>
+                                    <TextBlock Text="Chamados" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+                            <Button x:Name="NavKb" HorizontalContentAlignment="Left" Padding="10,8" Margin="0,0,0,2" Background="Transparent" Foreground="$($script:CorTextoSecundario)" BorderThickness="0">
+                                <StackPanel Orientation="Horizontal">
+                                    <Viewbox Width="16" Height="16" Margin="0,0,10,0"><Canvas Width="24" Height="24">
+                                        <Path Data="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5Z" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1.8" Fill="Transparent" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"/>
+                                    </Canvas></Viewbox>
+                                    <TextBlock Text="Base de Conhecimento" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+                            <Button x:Name="NavAtendimentos" HorizontalContentAlignment="Left" Padding="10,8" Margin="0,0,0,2" Background="Transparent" Foreground="$($script:CorTextoSecundario)" BorderThickness="0">
+                                <StackPanel Orientation="Horizontal">
+                                    <Viewbox Width="16" Height="16" Margin="0,0,10,0"><Canvas Width="24" Height="24">
+                                        <Ellipse Canvas.Left="3" Canvas.Top="3" Width="18" Height="18" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1.8" Fill="Transparent"/>
+                                        <Path Data="M9 11.5 11 13.5 15.5 9" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1.8" Fill="Transparent" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"/>
+                                    </Canvas></Viewbox>
+                                    <TextBlock Text="Meus Atendimentos" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
                         </StackPanel>
                     </ScrollViewer>
 
