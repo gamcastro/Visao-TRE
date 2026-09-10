@@ -810,10 +810,24 @@ function Get-VarreduraNovosResultados {
                     # e Test-HostnamePertenceZona ja roda neste mesmo
                     # servidor) e evita o cliente ter que chamar de volta
                     # pro servidor pra cada um dos ate 254 resultados.
+                    #
+                    # Correcao (2026-09-10, confirmado com o usuario): as
+                    # convencoes de numeracao (.70 = Gateway/Roteador,
+                    # .190-.195 = Telefone VOIP) valem pra TODA zona do
+                    # interior (10.198.x.x), mesmo quando a rede e
+                    # compartilhada por mais de uma zona (ex: ZE 22/Balsas)
+                    # - a UNICA excecao de verdade e a rede de Sao Luis
+                    # (10.11.81.x), que nao segue essa convencao. A versao
+                    # anterior usava "-not RedeCompartilhada" como proxy
+                    # pra essa excecao, o que desligava as duas
+                    # classificacoes indevidamente em QUALQUER zona do
+                    # interior que dividisse rede com outra - nao so em
+                    # Sao Luis.
                     $ultimoOcteto = [int]($item.IP -split '\.')[3]
-                    $ehGateway = (-not $estado.RedeCompartilhada) -and $item.IP.EndsWith(".70")
+                    $ehRedeSaoLuis = $item.IP.StartsWith("10.11.81.")
+                    $ehGateway = (-not $ehRedeSaoLuis) -and $item.IP.EndsWith(".70")
                     $ehNobreakCentral = ($ultimoOcteto -eq 10 -or $ultimoOcteto -eq 11)
-                    $ehTelefoneVoip = (-not $estado.RedeCompartilhada) -and ($ultimoOcteto -ge 190 -and $ultimoOcteto -le 195)
+                    $ehTelefoneVoip = (-not $ehRedeSaoLuis) -and ($ultimoOcteto -ge 190 -and $ultimoOcteto -le 195)
                     $pertence = if ($estado.RedeCompartilhada) { Test-HostnamePertenceZona -Hostname $item.Hostname -Zona $estado.Zona } else { $true }
 
                     $item | Add-Member -NotePropertyName EhGateway -NotePropertyValue $ehGateway -Force
