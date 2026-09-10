@@ -64,9 +64,14 @@ function doPost(e) {
     if (params.token !== TOKEN) {
       return responderJson({ ok: false, erro: "token invalido" });
     }
-    if (!params.zona || !params.linhas || !params.linhas.length) {
-      return responderJson({ ok: false, erro: "zona ou linhas ausente/vazia" });
+    if (!params.zona || !params.linhas) {
+      return responderJson({ ok: false, erro: "zona ou linhas ausente" });
     }
+    // "linhas" vazio e um resultado LEGITIMO (zona escaneada, zero
+    // maquinas online agora) - so zona/linhas ausentes de verdade sao
+    // erro. Como "substitui a zona inteira" (ver abaixo), isso tambem
+    // serve pra zerar de proposito uma zona (ex: limpeza de teste) sem
+    // precisar de uma acao separada de "limpar".
 
     var planilha = SpreadsheetApp.openById(SPREADSHEET_ID);
     var aba = planilha.getSheetByName(NOME_ABA);
